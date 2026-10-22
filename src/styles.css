@@ -296,6 +296,16 @@ tr.clickable:hover { background: var(--surface-2); }
 
 /* Analytics */
 .filter-panel { margin-bottom: 16px; }
+.range-panel .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.monthly-change-chart { height: 340px; display: flex; flex-direction: column; }
+.monthly-change-chart .section-head { direction: rtl; }
+.monthly-change-chart .recharts-responsive-container { flex: 1; min-height: 0; }
+.chart-note { margin-top: 10px; display: flex; align-items: flex-start; gap: 7px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.chart-note svg { flex: 0 0 auto; margin-top: 2px; color: var(--primary); }
+.chart-tooltip small { margin-top: 3px; color: var(--muted); line-height: 1.6; }
+.table-sort { padding: 3px 0; display: inline-flex; align-items: center; gap: 5px; color: inherit; background: transparent; font: inherit; }
+.table-sort:hover, .table-sort:focus-visible { color: var(--primary); }
+.table-sort span { color: var(--primary); font-size: 10px; }
 .finance-month-picker { margin-bottom: 16px; padding-block: 12px; }
 .finance-month-picker .field { max-width: 280px; }
 .filter-grid { display: grid; grid-template-columns: 1fr 1fr 1.3fr 1.3fr; gap: 12px; align-items: end; }
