@@ -17,6 +17,7 @@ interface ChartTooltipProps {
   suffix?: string
   labelFormatter?: (value: string) => string
   series?: Array<{ key: string; label: string }>
+  showIndexCoverage?: boolean
 }
 
 export function ChartTooltip({
@@ -29,7 +30,8 @@ export function ChartTooltip({
   compactMoney = false,
   suffix = '',
   labelFormatter,
-  series
+  series,
+  showIndexCoverage = false
 }: ChartTooltipProps) {
   if (!active || !payload?.length) return null
 
@@ -48,6 +50,6 @@ export function ChartTooltip({
 
   return <div className="chart-tooltip">
     {shownLabel ? <div>{shownLabel}</div> : null}
-    {seriesValues?.length ? seriesValues.map(item => <strong key={item.key}>{item.label}: {item.value == null ? '—' : isMoney ? formatMoney(item.value, currency, compactMoney) : `${faDecimal.format(item.value)}${suffix}`}</strong>) : <strong>{shownValue}</strong>}
+    {seriesValues?.length ? seriesValues.map(item => <strong key={item.key}>{item.label}: {item.value == null ? '—' : isMoney ? formatMoney(item.value, currency, compactMoney) : `${faDecimal.format(item.value)}${suffix}`}</strong>) : <strong>{shownValue}</strong>}{showIndexCoverage && entry?.payload ? <small>{entry.payload.hasData === false ? 'در این ماه قیمت ثبت نشده' : Number(entry.payload.matched) > 0 ? `${faDecimal.format(Number(entry.payload.matched))} کالای قابل‌مقایسه · پوشش ${faDecimal.format(Number(entry.payload.coveragePct))}٪` : 'قیمت ثبت شده، اما مقایسه‌ای در دسترس نیست'}</small> : null}
   </div>
 }
