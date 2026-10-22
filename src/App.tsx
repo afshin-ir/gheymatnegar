@@ -295,6 +295,19 @@ export default function App() {
 
   async function setTheme(theme: ThemeMode) { await db.settings.put({...settings, theme}) }
   function applyQuickRange(days?: number) { setRangeTo(todayISO()); setRangeFrom(days ? lastNDaysISO(days) : '') }
+  function toggleComparisonSort(key: 'recent'|'change'|'name') {
+    if (comparisonSort === key) setComparisonDirection(current => current === 'asc' ? 'desc' : 'asc')
+    else { setComparisonSort(key); setComparisonDirection(key === 'name' ? 'asc' : 'desc') }
+  }
+  const renderRangeFilter = () => <section className="panel filter-panel range-panel">
+    <div className="panel-head"><div><h2>بازهٔ بررسی</h2><p>این بازه در داشبورد، فهرست کالاها و تحلیل‌ها یکسان اعمال می‌شود.</p></div></div>
+    <div className="filter-grid">
+      <div className="field"><span>از تاریخ</span><PersianDatePicker value={rangeFrom} onChange={setRangeFrom} max={todayISO()} allowClear ariaLabel="از تاریخ" placeholder="ابتدای بازه"/></div>
+      <div className="field"><span>تا تاریخ</span><PersianDatePicker value={rangeTo} onChange={setRangeTo} max={todayISO()} allowClear ariaLabel="تا تاریخ" placeholder="پایان بازه"/></div>
+    </div>
+    <div className="quick-ranges" aria-label="بازه‌های سریع"><button className={rangeFrom === lastNDaysISO(30) && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange(30)}>۳۰ روز</button><button className={rangeFrom === lastNDaysISO(90) && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange(90)}>۳ ماه</button><button className={rangeFrom === lastNDaysISO(180) && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange(180)}>۶ ماه</button><button className={rangeFrom === lastNDaysISO(365) && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange(365)}>۱ سال</button><button className={!rangeFrom && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange()}>کل سابقه</button></div>
+    {rangeInvalid ? <div className="filter-error"><Info size={15}/>تاریخ شروع باید پیش از تاریخ پایان باشد.</div> : null}
+  </section>
 
   async function deletePurchase(row: Purchase) {
     if (!await askConfirm('حذف رکورد خرید', 'این رکورد از تاریخچه قیمت حذف می‌شود.', 'حذف کن', true)) return
