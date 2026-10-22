@@ -159,7 +159,8 @@ export default function App() {
   const composite = useMemo(() => buildCompositeIndex(filteredPurchases, startOfPersianMonthISO(rangeTo || todayISO())), [filteredPurchases, rangeTo])
   const latestComposite = composite.at(-1)
   const latestComparableComposite = [...composite].reverse().find(point => point.changePct != null)
-  const totalIndexChange = composite.length >= 2 ? ((composite.at(-1)!.index / composite[0].index) - 1) * 100 : null
+  const observedIndexMonths = composite.filter(point => point.hasData)
+  const totalIndexChange = observedIndexMonths.length >= 2 ? ((observedIndexMonths.at(-1)!.index / observedIndexMonths[0].index) - 1) * 100 : null
   const categories = useMemo(() => ['همه', ...Array.from(new Set(activeProducts.map(product => product.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'fa'))], [activeProducts])
   const normalizedSearch = useMemo(() => normalizePersianText(search), [search])
   const filteredStats = useMemo(() => {
@@ -210,7 +211,11 @@ export default function App() {
     let order = 0
     if (comparisonSort === 'name') order = a.product.name.localeCompare(b.product.name, 'fa')
     else if (comparisonSort === 'recent') order = (a.lastDate ?? '').localeCompare(b.lastDate ?? '')
-    else order = (a.changePct ?? Number.NEGATIVE_INFINITY) - (b.changePct ?? Number.NEGATIVE_INFINITY)
+    else {
+      if (a.changePct == null) return 1
+      if (b.changePct == null) return -1
+      order = a.changePct - b.changePct
+    }
     return comparisonDirection === 'asc' ? order : -order
   }).slice(0, 20), [recentStats, comparisonSort, comparisonDirection])
   const money = (value: number, compact = settings.compactNumbers) => formatMoney(value, settings.currency, compact)
@@ -383,15 +388,15 @@ export default function App() {
         <StatCard label="شاخص سبد قیمت" value={composite.length ? faDecimal.format(composite.at(-1)!.index) : '—'} hint={totalIndexChange == null ? 'حداقل دو ماه داده لازم است' : `${formatPct(totalIndexChange)} از اولین ماه`} tone={pctTone(totalIndexChange)}/>
         <StatCard label="آخرین تغییر قابل‌مقایسه" value={latestComparableComposite ? formatPct(latestComparableComposite.changePct) : "—"} hint={latestComparableComposite ? formatMonth(latestComparableComposite.month) : "برای مقایسه، ثبت قیمت تازه لازم است"} tone={pctTone(latestComparableComposite?.changePct ?? null)}/>
         <StatCard label="کالاهای فعال" value={faNumber.format(activeProducts.length)} hint="در سبد قیمت شما"/>
-        <StatCard label="ثبت‌های قیمت" value={faNumber.format(purchases.length)} hint="برای بررسی روند در طول زمان"/>
+        <StatCard label="ثبت‌های قیمت" value={faNumber.format(filteredPurchases.length)} hint="در بازهٔ انتخاب‌شده"/>
       </div>
 
       <div className="dashboard-grid">
         <section className="panel panel-wide">
           <div className="panel-head">
             <div>
-              <h2>شاخص سبد و تورم ماهانه</h2>
-              <p>شاخص زنجیره‌ای با پایهٔ ۱۰۰. ماه‌های بی‌ثبت با شاخص ثابت و بدون ستون درصد نمایش داده می‌شوند؛ تغییرها فقط در ماه دارای قیمت قابل‌مقایسه محاسبه می‌شوند.</p>
+              <h2>شاخص سبد و تغییر قیمت</h2>
+              <p>شاخص زنجیره‌ای با پایهٔ ۱۰۰. ماه‌های بی‌ثبت با شاخص ثابت و بدون ستون درصد نمایش داده می‌شوند؛ در ماه‌های بدون قیمت درصدی نمایش داده نمی‌شود؛ تغییر هر نقطه نسبت به نقطهٔ قابل‌مقایسهٔ پیشین است.</p>
             </div>
             {latestComposite ? <Badge tone={!latestComposite.hasData ? 'default' : latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{latestComposite.hasData ? `${faDecimal.format(latestComposite.coveragePct)}٪ پوشش` : 'بدون ثبت این ماه'}</Badge> : <Badge tone="info">داده‌ای نداریم</Badge>}
           </div>
@@ -427,7 +432,7 @@ export default function App() {
           <td data-label="آخرین قیمت">{stat.latest == null ? '—' : money(stat.latest)}</td>
           <td data-label="کمینه تا بیشینه">{stat.min == null || stat.max == null ? '—' : <>{money(stat.min)} – {money(stat.max)}</>}</td>
           <td data-label="تغییر بازه"><span className={`delta ${pctTone(stat.changePct)}`}>{stat.changePct == null || stat.changePct === 0 ? <Minus size={15}/> : stat.changePct > 0 ? <TrendingUp size={15}/> : <TrendingDown size={15}/>} {formatPct(stat.changePct)}</span></td>
-          <td data-label="ثبت‌ها و تازگی">{faNumber.format(stat.count)} ثبت</td>
+          <td data-label="تعداد ثبت">{faNumber.format(stat.count)} ثبت</td>
           <td data-label="آخرین ثبت">{stat.lastDate ? formatDate(stat.lastDate) : '—'}</td>
         </tr>)}</tbody></table></div> : <EmptyState icon={<Activity size={24}/>} title="در این بازه قیمت ثبت نشده" body="بازه را تغییر دهید یا برای کالاها قیمت ثبت کنید." action={activeProducts.length ? <button className="button primary small" onClick={() => setPurchaseModal({ open: true })}><Plus size={17}/>ثبت قیمت</button> : undefined}/>}
       </section>
