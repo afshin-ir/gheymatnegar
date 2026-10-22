@@ -30,7 +30,6 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 function pctTone(value: number | null) { return value == null || value === 0 ? 'neutral' : value > 0 ? 'up' : 'down' }
-function growthTone(value: number | null) { return value == null || value === 0 ? 'neutral' : value > 0 ? 'down' : 'up' }
 export default function App() {
   const productsLive = useLiveQuery(() => db.products.toArray())
   const storesLive = useLiveQuery(() => db.stores.toArray())
