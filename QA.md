@@ -9,10 +9,6 @@
   - dedup/remap کالا و فروشگاه در Merge
   - جلوگیری از Merge واحد پول ناسازگار
   - نگاشت تاریخ ISO به تقویم شمسی و شروع/ناوبری ماه فارسی
-  - تجمیع خریدها، درآمدها و هزینه‌ها در cashflow ماه شمسی
-  - محاسبه تغییر مخارج و سازگاری Backup نسخه 1 بدون Transaction
-  - محاسبه درآمد/پس‌انداز دلاری و رشد واقعی درآمد در برابر شاخص شخصی
-  - یکپارچگی FinancialSnapshot و سازگاری Backup نسخه‌های 1 و 2 بدون آن
 - syntax check برای scriptهای Node
 - اجرای `build-sw.mjs` روی یک `dist` نمونه و syntax check فایل Service Worker تولیدشده
 - بررسی breakpointهای CSS برای انحصاری بودن Sidebar / Drawer / Bottom Navigation
@@ -47,15 +43,6 @@ npm run preview
 10. بعد از `npm run preview` صفحه یک‌بار آنلاین باز، سپس DevTools روی Offline قرار داده و reload شود.
 11. خریدی با مقدار اعشاری و مبلغ پرداختی واقعی ثبت شود؛ قیمت واحد باید از تقسیم این دو ساخته شود.
 12. مبلغ قبل از تخفیف کمتر از مبلغ پرداختی پذیرفته نشود؛ مقدار برابر باید تخفیف صفر بسازد.
-13. درآمد و هزینه مستقل ثبت، ویرایش و حذف شوند و در دفتر ماه شمسی درست ظاهر شوند.
-14. خرید ثبت‌شده بدون ایجاد Transaction جداگانه در جمع هزینه و سبد هزینه همان ماه لحاظ شود.
-15. بین ماه‌های گزارش جابه‌جا شوید؛ مقایسه ماه قبل/سال قبل و فهرست رکوردهای همان ماه به‌روز شوند.
-16. Backup نسخه 2 با Transactionها Replace و Merge شود و Backup نسخه 1 با آرایه Transaction خالی وارد شود.
-17. برای دو ماه متوالی نرخ دلار و درآمد ثبت کنید؛ درآمد دلاری و تغییر ماهانه باید از تقسیم درآمد بر نرخ هر ماه ساخته شود.
-18. مانده کل پس‌انداز را ثبت کنید و مطمئن شوید با «پس‌انداز این ماه» (درآمد منهای هزینه) اشتباه گرفته نمی‌شود.
-19. نرخ با تاریخ بیرون از ماه انتخابی، نرخ صفر و مانده منفی پذیرفته نشوند.
-20. با وجود قیمت در دو ماه شمسی متوالی، رشد اسمی، تورم شخصی و رشد واقعی درآمد نمایش داده شوند؛ در نبود داده کافی خط تیره دیده شود.
-21. حذف معیار مالی نباید خریدها یا تراکنش‌های همان ماه را حذف کند.
 
 
 ## Regression checks for automatic basket weighting
@@ -70,9 +57,9 @@ npm run preview
 ## UX regression checks for 1.5.0
 
 - Open each primary tab after scrolling down another page; the window starts at the top.
-- On the Products page, confirm the primary “ثبت خرید” action appears before the secondary “کالای جدید” action in RTL visual order.
+- On the Products page, confirm the primary “ثبت قیمت” action appears before the secondary “کالای جدید” action in RTL visual order.
 - Product detail edit/archive/delete actions render as one grouped control, with delete retaining destructive hover styling.
-- پنجره «ثبت خرید جدید» در شروع فیلد مبلغ پرداختی را خنثی نشان دهد؛ پس از ترک فیلد خالی، خطای درون‌خطی ظاهر شود و قیمت واحد محاسبه‌شده در خلاصه دیده شود.
+- پنجره «ثبت ثبت قیمت جدید» در شروع فیلد مبلغ پرداختی را خنثی نشان دهد؛ پس از ترک فیلد خالی، خطای درون‌خطی ظاهر شود و قیمت واحد محاسبه‌شده در خلاصه دیده شود.
 - تمام فیلدهای انتخاب تاریخ از Date Picker شمسی مشترک استفاده کنند؛ تاریخ انتخاب‌شده با ماه شمسی نمایش داده شود، تاریخ آینده قابل انتخاب نباشد و Escape تقویم را بدون بستن Modal ببندد.
 - Chart first/last X-axis labels are not visibly clipped at common desktop widths.
 - Sidebar status and descriptive privacy copy are fully Persian except necessary technical names such as IndexedDB/JSON/CSV.
