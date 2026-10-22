@@ -523,7 +523,7 @@ hr { margin: 18px 0; border: 0; border-top: 1px solid var(--border); }
   tbody td:first-child::before { grid-row: 1 / span 2; }
   tbody td:first-child > strong, tbody td:first-child > small { margin-inline-start: auto; }
 
-  .mobile-nav { position: fixed; z-index: 60; inset: auto 0 0 0; padding: 7px 8px calc(7px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(5, 1fr); background: color-mix(in srgb, var(--surface) 95%, transparent); border-top: 1px solid var(--border); box-shadow: 0 -8px 30px rgba(16,24,40,.07); backdrop-filter: blur(18px); }
+  .mobile-nav { position: fixed; z-index: 60; inset: auto 0 0 0; padding: 7px 8px calc(7px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(4, 1fr); background: color-mix(in srgb, var(--surface) 95%, transparent); border-top: 1px solid var(--border); box-shadow: 0 -8px 30px rgba(16,24,40,.07); backdrop-filter: blur(18px); }
   .mobile-nav button { min-height: 54px; appearance: none; border: 0; border-radius: 11px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--muted); background: transparent; font-size: 11.5px; font-weight: 650; }
   .mobile-nav button.active { color: var(--primary); background: var(--primary-soft); }
 
