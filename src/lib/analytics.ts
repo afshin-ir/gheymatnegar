@@ -224,8 +224,8 @@ export function buildCompositeIndex(purchases: Purchase[], throughMonth?: string
     result.push({
       month,
       index,
-      matched: monthIndex === 0 ? current.size : comparable.length,
-      coveragePct: monthIndex === 0 ? 100 : eligibleWeight ? Math.min(100, (freshWeight / eligibleWeight) * 100) : 0,
+      matched: monthIndex === 0 ? 0 : comparable.length,
+      coveragePct: monthIndex === 0 ? 0 : eligibleWeight ? Math.min(100, (freshWeight / eligibleWeight) * 100) : 0,
       hasData: current.size > 0,
       changePct: comparable.length ? ((index / indexBeforeMonth) - 1) * 100 : null
     })
