@@ -414,8 +414,22 @@ export default function App() {
       </div>
 
       <section className="panel">
-        <div className="panel-head"><div><h2>آخرین تغییرات کالاها</h2><p>قیمت فعلی، کمینه و تغییر نسبت به اولین ثبت</p></div><button className="text-button" onClick={() => setPage('products')}>همه کالاها <ChevronLeft size={16}/></button></div>
-        {recentStats.length ? <div className="table-wrap"><table><thead><tr><th>کالا</th><th>آخرین قیمت</th><th>کمینه</th><th>تغییر کل</th><th>آخرین ثبت</th></tr></thead><tbody>{recentStats.map(stat => <tr key={stat.product.id} className="clickable" tabIndex={0} role="button" onClick={() => { selectProduct(stat.product.id); setPage('products') }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectProduct(stat.product.id); setPage('products') } }}><td data-label="کالا"><strong>{stat.product.name}</strong><small>{stat.product.category}</small></td><td data-label="آخرین قیمت">{money(stat.latest!)}</td><td data-label="کمینه">{money(stat.min!)}</td><td data-label="تغییر کل"><span className={`delta ${pctTone(stat.changePct)}`}>{stat.changePct == null || stat.changePct === 0 ? <Minus size={15}/> : stat.changePct > 0 ? <TrendingUp size={15}/> : <TrendingDown size={15}/>} {formatPct(stat.changePct)}</span></td><td data-label="آخرین ثبت">{stat.lastDate ? formatDate(stat.lastDate) : '—'}</td></tr>)}</tbody></table></div> : <EmptyState icon={<Activity size={24}/>} title="هنوز قیمتی ثبت نشده" body="اولین قیمت را ثبت کنید تا آخرین قیمت‌ها و تغییرات اینجا نمایش داده شوند." action={activeProducts.length ? <button className="button primary small" onClick={() => setPurchaseModal({ open: true })}><Plus size={17}/>ثبت اولین قیمت</button> : undefined}/>} 
+        <div className="panel-head"><div><h2>مقایسهٔ قیمت کالاها</h2><p>قیمت آغاز و پایان، دامنهٔ قیمت و تغییر در بازهٔ انتخاب‌شده</p></div><button className="text-button" onClick={() => setPage('products')}>فهرست کالاها <ChevronLeft size={16}/></button></div>
+        {comparisonStats.length ? <div className="table-wrap"><table><thead><tr>
+          <th aria-sort={comparisonSort === 'name' ? comparisonDirection === 'asc' ? 'ascending' : 'descending' : 'none'}><button className="table-sort" onClick={() => toggleComparisonSort('name')}>کالا <span>{comparisonSort === 'name' ? comparisonDirection === 'asc' ? '▲' : '▼' : '↕'}</span></button></th>
+          <th>قیمت آغاز بازه</th><th>آخرین قیمت</th><th>کمینه تا بیشینه</th>
+          <th aria-sort={comparisonSort === 'change' ? comparisonDirection === 'asc' ? 'ascending' : 'descending' : 'none'}><button className="table-sort" onClick={() => toggleComparisonSort('change')}>تغییر بازه <span>{comparisonSort === 'change' ? comparisonDirection === 'asc' ? '▲' : '▼' : '↕'}</span></button></th>
+          <th>ثبت‌ها و تازگی</th>
+          <th aria-sort={comparisonSort === 'recent' ? comparisonDirection === 'asc' ? 'ascending' : 'descending' : 'none'}><button className="table-sort" onClick={() => toggleComparisonSort('recent')}>آخرین ثبت <span>{comparisonSort === 'recent' ? comparisonDirection === 'asc' ? '▲' : '▼' : '↕'}</span></button></th>
+        </tr></thead><tbody>{comparisonStats.map(stat => <tr key={stat.product.id} className="clickable" tabIndex={0} role="button" onClick={() => { selectProduct(stat.product.id); setPage('products') }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectProduct(stat.product.id); setPage('products') } }}>
+          <td data-label="کالا"><strong>{stat.product.name}</strong><small>{stat.product.category} · {stat.product.unit}</small></td>
+          <td data-label="قیمت آغاز بازه">{stat.first == null ? '—' : money(stat.first)}</td>
+          <td data-label="آخرین قیمت">{stat.latest == null ? '—' : money(stat.latest)}</td>
+          <td data-label="کمینه تا بیشینه">{stat.min == null || stat.max == null ? '—' : <>{money(stat.min)} – {money(stat.max)}</>}</td>
+          <td data-label="تغییر بازه"><span className={`delta ${pctTone(stat.changePct)}`}>{stat.changePct == null || stat.changePct === 0 ? <Minus size={15}/> : stat.changePct > 0 ? <TrendingUp size={15}/> : <TrendingDown size={15}/>} {formatPct(stat.changePct)}</span></td>
+          <td data-label="ثبت‌ها و تازگی">{faNumber.format(stat.count)} ثبت</td>
+          <td data-label="آخرین ثبت">{stat.lastDate ? formatDate(stat.lastDate) : '—'}</td>
+        </tr>)}</tbody></table></div> : <EmptyState icon={<Activity size={24}/>} title="در این بازه قیمت ثبت نشده" body="بازه را تغییر دهید یا برای کالاها قیمت ثبت کنید." action={activeProducts.length ? <button className="button primary small" onClick={() => setPurchaseModal({ open: true })}><Plus size={17}/>ثبت قیمت</button> : undefined}/>}
       </section>
     </>}
   </>
