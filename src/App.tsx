@@ -353,6 +353,8 @@ export default function App() {
       <div className="button-row page-heading-actions"><button className="button primary" onClick={() => setPurchaseModal({ open: true })} disabled={!activeProducts.length}><Plus size={19}/>ثبت قیمت</button><button className="button secondary" onClick={() => setProductModal({ open: true })}><PackagePlus size={18}/>کالای جدید</button></div>
     </div>
 
+    {products.length ? renderRangeFilter() : null}
+
     {!products.length ? <EmptyState
       icon={<ShoppingBasket size={28}/>}
       title="از ثبت قیمت کالاها شروع کنید"
@@ -379,7 +381,7 @@ export default function App() {
 
       <div className="stats-grid">
         <StatCard label="شاخص سبد قیمت" value={composite.length ? faDecimal.format(composite.at(-1)!.index) : '—'} hint={totalIndexChange == null ? 'حداقل دو ماه داده لازم است' : `${formatPct(totalIndexChange)} از اولین ماه`} tone={pctTone(totalIndexChange)}/>
-        <StatCard label="تغییر شاخص در آخرین ماه" value={composite.length > 1 ? formatPct(((composite.at(-1)!.index / composite.at(-2)!.index) - 1) * 100) : "—"} hint="بر پایه داده‌های ثبت‌شده" tone={pctTone(composite.length > 1 ? ((composite.at(-1)!.index / composite.at(-2)!.index) - 1) * 100 : null)}/>
+        <StatCard label="آخرین تغییر قابل‌مقایسه" value={latestComparableComposite ? formatPct(latestComparableComposite.changePct) : "—"} hint={latestComparableComposite ? formatMonth(latestComparableComposite.month) : "برای مقایسه، ثبت قیمت تازه لازم است"} tone={pctTone(latestComparableComposite?.changePct ?? null)}/>
         <StatCard label="کالاهای فعال" value={faNumber.format(activeProducts.length)} hint="در سبد قیمت شما"/>
         <StatCard label="ثبت‌های قیمت" value={faNumber.format(purchases.length)} hint="برای بررسی روند در طول زمان"/>
       </div>
@@ -388,16 +390,21 @@ export default function App() {
         <section className="panel panel-wide">
           <div className="panel-head">
             <div>
-              <h2>شاخص تورم شخصی</h2>
-              <p>شاخص زنجیره‌ای ماهانه با پایه ۱۰۰؛ میانه قیمت‌های هر ماه با آخرین قیمت قابل‌مقایسه همان کالا سنجیده و تغییرها بر اساس الگوی هزینه قبلی شما ترکیب می‌شوند.</p>
+              <h2>شاخص سبد و تورم ماهانه</h2>
+              <p>شاخص زنجیره‌ای با پایهٔ ۱۰۰. ماه‌های بی‌ثبت با شاخص ثابت و بدون ستون درصد نمایش داده می‌شوند؛ تغییرها فقط در ماه دارای قیمت قابل‌مقایسه محاسبه می‌شوند.</p>
             </div>
-            {latestComposite ? <Badge tone={latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{faDecimal.format(latestComposite.coveragePct)}٪ پوشش</Badge> : <Badge tone="info">تقریبی</Badge>}
+            {latestComposite ? <Badge tone={!latestComposite.hasData ? 'default' : latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{latestComposite.hasData ? `${faDecimal.format(latestComposite.coveragePct)}٪ پوشش` : 'بدون ثبت این ماه'}</Badge> : <Badge tone="info">داده‌ای نداریم</Badge>}
           </div>
-          {latestComposite && latestComposite.matched === 0 ? <div className="inline-warning"><Info size={16}/><span>در ماه آخر هیچ کالای دارای سابقه قبلی دوباره قیمت‌گذاری نشده؛ شاخص در این نقطه تغییر نکرده و باید با احتیاط تفسیر شود.</span></div> : null}
-          {composite.length > 1 ? <div className="chart-lg"><ResponsiveContainer width="100%" height="100%"><AreaChart data={composite} margin={{ top: 6, right: 12, bottom: 10, left: 8 }}>
-            <defs><linearGradient id="indexFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.3}/><stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0.02}/></linearGradient></defs>
-            <CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="month" tickFormatter={formatMonth} tickMargin={10} minTickGap={28} interval="preserveStartEnd"/><YAxis domain={['auto', 'auto']} orientation="right" tickMargin={8}/><Tooltip content={<ChartTooltip valueKey="index" labelFormatter={formatMonth}/>}/><Area type="monotone" dataKey="index" stroke="var(--chart-1)" fill="url(#indexFill)" strokeWidth={3}/>
-          </AreaChart></ResponsiveContainer></div> : <EmptyState icon={<LineIcon size={24}/>} title="برای نمودار داده بیشتری لازم است" body="قیمت یک یا چند کالا را در حداقل دو ماه ثبت کنید."/>}
+          {latestComposite && !latestComposite.hasData ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمتی ثبت نشده؛ شاخص از آخرین مقدار موجود ادامه پیدا می‌کند و این ماه تورم صفر محسوب نمی‌شود.</span></div> : null}
+          {latestComposite?.hasData && latestComposite.matched === 0 ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمت قابل‌مقایسه‌ای ثبت نشده؛ برای محاسبهٔ تغییر، قیمت کالاهای دارای سابقه را دوباره ثبت کنید.</span></div> : null}
+          {composite.length > 1 ? <>
+            <div className="chart-lg"><ResponsiveContainer width="100%" height="100%"><AreaChart data={composite} margin={{ top: 6, right: 12, bottom: 10, left: 8 }}>
+              <defs><linearGradient id="indexFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.3}/><stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0.02}/></linearGradient></defs>
+              <CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="month" tickFormatter={formatMonth} tickMargin={10} minTickGap={28} interval="preserveStartEnd"/><YAxis domain={['auto', 'auto']} orientation="right" tickMargin={8}/><Tooltip content={<ChartTooltip valueKey="index" labelFormatter={formatMonth} showIndexCoverage/>}/><Area type="monotone" dataKey="index" stroke="var(--chart-1)" fill="url(#indexFill)" strokeWidth={3}/>
+            </AreaChart></ResponsiveContainer></div>
+            <div className="chart-md monthly-change-chart"><div className="section-head"><h3>تغییر شاخص در ماه</h3><span>درصد نسبت به نقطهٔ قبلی شاخص</span></div><ResponsiveContainer width="100%" height="100%"><BarChart data={composite} margin={{ top: 6, right: 12, bottom: 10, left: 8 }}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="month" tickFormatter={formatMonth} tickMargin={10} minTickGap={28} interval="preserveStartEnd"/><YAxis orientation="right" tickFormatter={value => `${faDecimal.format(Number(value))}٪`} width={68}/><Tooltip content={<ChartTooltip valueKey="changePct" suffix="٪" labelFormatter={formatMonth}/>}/><Bar dataKey="changePct" radius={[5, 5, 0, 0]}>{composite.map(point => <Cell key={point.month} fill={point.changePct == null ? 'var(--chart-1)' : point.changePct >= 0 ? 'var(--danger)' : 'var(--success)'}/>)}</Bar></BarChart></ResponsiveContainer></div>
+          </> : <EmptyState icon={<LineIcon size={24}/>} title="برای نمودار دادهٔ بیشتری لازم است" body="قیمت یک یا چند کالا را در دو ماه متفاوت ثبت کنید."/>}
+          <div className="chart-note"><Info size={15}/><span>اگر قیمت کالایی چند ماه ثبت نشود، تغییر آن هنگام ثبت دوباره دیده می‌شود. درصدها را همراه با پوشش شاخص و تعداد قیمت‌های ثبت‌شده تفسیر کنید.</span></div>
         </section>
 
         <section className="panel">
@@ -421,6 +428,8 @@ export default function App() {
       <div><span className="eyebrow">مدیریت کالا</span><h1>کالاها و تاریخچه قیمت</h1><p>واحد مقایسه هر کالا را ثابت نگه دارید تا روند و درصد تغییر قابل اتکا بماند.</p></div>
       <div className="button-row page-heading-actions"><button className="button primary" onClick={() => setPurchaseModal({ open: true, productId: selectedProduct && !selectedProduct.archived ? selectedProductId : undefined })} disabled={!activeProducts.length}><Plus size={18}/>ثبت قیمت</button><button className="button secondary" onClick={() => setProductModal({ open: true })}><PackagePlus size={18}/>کالای جدید</button></div>
     </div>
+
+    {renderRangeFilter()}
 
     <div className="product-layout">
       <section ref={productListRef} className="panel product-list-panel">
@@ -463,15 +472,11 @@ export default function App() {
   const renderAnalytics = () => <>
     <div className="page-heading"><div><span className="eyebrow">تحلیل عمیق</span><h1>تحلیل تورم و نوسان</h1><p>بازه زمانی را محدود کنید و رفتار هر کالا، دسته و فروشگاه را مقایسه کنید.</p></div></div>
 
-    <section className="panel filter-panel">
-      <div className="filter-grid">
-        <div className="field"><span>از تاریخ</span><PersianDatePicker value={rangeFrom} onChange={setRangeFrom} max={todayISO()} allowClear ariaLabel="از تاریخ" placeholder="انتخاب تاریخ شروع"/></div>
-        <div className="field"><span>تا تاریخ</span><PersianDatePicker value={rangeTo} onChange={setRangeTo} max={todayISO()} allowClear ariaLabel="تا تاریخ" placeholder="انتخاب تاریخ پایان"/></div>
-        <label className="field field-span-2"><span>کالا برای تحلیل جزئی</span><select value={selectedProductId} onChange={event => setSelectedProductId(event.target.value)}>{activeProducts.map(product => <option value={product.id} key={product.id}>{product.name}</option>)}</select></label>
-      </div>
-      <div className="quick-ranges" aria-label="بازه‌های سریع"><button className={rangeFrom === lastNDaysISO(30) && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange(30)}>۳۰ روز</button><button className={rangeFrom === lastNDaysISO(90) && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange(90)}>۹۰ روز</button><button className={rangeFrom === lastNDaysISO(365) && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange(365)}>یک سال</button><button className={!rangeFrom && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange()}>همه تاریخ</button></div>
-      {rangeInvalid ? <div className="filter-error"><Info size={15}/>تاریخ شروع باید قبل از تاریخ پایان باشد.</div> : null}
+    {renderRangeFilter()}
+    <section className="panel filter-panel product-analysis-filter">
+      <label className="field"><span>کالا برای تحلیل جزئی</span><select value={selectedProductId} onChange={event => setSelectedProductId(event.target.value)}>{activeProducts.map(product => <option value={product.id} key={product.id}>{product.name}</option>)}</select></label>
     </section>
+
 
     <div className="stats-grid three"><StatCard label={`تغییر ${selectedProduct?.name ?? 'کالا'}`} value={formatPct(periodChange)} hint={`${faNumber.format(filteredProductHistory.length)} ثبت قیمت در این بازه`} tone={pctTone(periodChange)}/><StatCard label="ثبت‌های قیمت بازه" value={faNumber.format(filteredPurchases.length)} hint="در بازه انتخاب‌شده"/><StatCard label="کالاهای دارای داده" value={faNumber.format(new Set(filteredPurchases.map(purchase => purchase.productId)).size)} hint="در بازه انتخاب‌شده"/></div>
 
