@@ -65,9 +65,17 @@ assert.deepEqual(['کالای ۱۰', 'کالای ۲', 'آب', 'ابزار'].sort
 const products = [product('p1', 'برنج')]
 const purchases = [purchase('a', 'p1', '2026-01-02', 100), purchase('b', 'p1', '2026-03-02', 120)]
 const index = analytics.buildCompositeIndex(purchases)
-assert.equal(index.length, 2)
-assert.equal(Math.round(index[1].index), 120)
+assert.equal(index.length, 3)
+assert.deepEqual(index.map(point => point.hasData), [true, false, true])
+assert.equal(index[1].changePct, null)
+assert.equal(Math.round(index[2].index), 120)
+assert.equal(Math.round(index[2].changePct), 20)
 assert.equal(Math.round(analytics.getProductStats(products, purchases)[0].changePct), 20)
+const extendedIndex = analytics.buildCompositeIndex(purchases, '2026-03-21')
+assert.equal(extendedIndex.length, 4)
+assert.equal(extendedIndex.at(-1).hasData, false)
+assert.equal(extendedIndex.at(-1).changePct, null)
+assert.equal(extendedIndex.at(-1).index, extendedIndex.at(-2).index)
 
 
 // Automatic basket weighting: a higher historical monthly spend should have
