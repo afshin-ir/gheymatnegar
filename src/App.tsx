@@ -40,7 +40,7 @@ function IncreaseBarLabel({ x = 0, y = 0, width = 0, height = 0, value }: BarLab
   const inside = width >= 52
   const labelWidth = Math.max(38, label.length * 7 + 14)
   const centerY = y + height / 2
-  const badgeX = inside ? x + width - labelWidth - 5 : x + width + 7
+  const badgeX = inside ? x + 5 : x - labelWidth - 7
   return <g aria-hidden="true">
     <rect x={badgeX} y={centerY - 10} width={labelWidth} height={20} rx={7} fill={inside ? '#fff' : 'var(--surface)'} stroke={inside ? 'none' : 'var(--border-strong)'}/>
     <text x={badgeX + labelWidth / 2} y={centerY + 4} textAnchor="middle" fill="var(--chart-2)" fontSize={11} fontWeight={750}>{label}</text>
@@ -444,7 +444,7 @@ export default function App() {
 
         <section className="panel">
           <div className="panel-head"><div><h2>بیشترین افزایش</h2><p>از اولین تا آخرین ثبت هر کالا</p></div></div>
-          {topChanges.length ? <div className="chart-md"><ResponsiveContainer width="100%" height="100%"><BarChart data={topChanges} layout="vertical" margin={{ left: 8, right: 58 }}><CartesianGrid strokeDasharray="4 4" horizontal={false}/><XAxis type="number" tickFormatter={value => `${faDecimal.format(Number(value))}٪`}/><YAxis dataKey="name" type="category" width={104}/><Bar dataKey="change" fill="var(--chart-2)" radius={[5, 5, 5, 5]}><LabelList dataKey="change" content={<IncreaseBarLabel/>}/></Bar></BarChart></ResponsiveContainer></div> : <EmptyState title="هنوز مقایسه‌ای نداریم" body="هر کالا به حداقل دو ثبت قیمت نیاز دارد."/>}
+          {topChanges.length ? <div className="chart-md"><ResponsiveContainer width="100%" height="100%"><BarChart data={topChanges} layout="vertical" margin={{ left: 8, right: 58 }}><CartesianGrid strokeDasharray="4 4" horizontal={false}/><XAxis type="number" reversed tickFormatter={value => `${faDecimal.format(Number(value))}٪`}/><YAxis dataKey="name" type="category" width={104} orientation="right"/><Bar dataKey="change" fill="var(--chart-2)" radius={[5, 5, 5, 5]}><LabelList dataKey="change" content={<IncreaseBarLabel/>}/></Bar></BarChart></ResponsiveContainer></div> : <EmptyState title="هنوز مقایسه‌ای نداریم" body="هر کالا به حداقل دو ثبت قیمت نیاز دارد."/>}
         </section>
       </div>
 
