@@ -7,7 +7,7 @@ import {
   Sun, Trash2, TrendingDown, TrendingUp, Upload, WifiOff, X
 } from 'lucide-react'
 import {
-  Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis
+  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from 'recharts'
 import { db, DEFAULT_SETTINGS } from './lib/db'
 import type { BackupData, Product, Purchase, Store, ThemeMode } from './lib/types'
@@ -17,6 +17,7 @@ import { formatDate, formatMoney, formatMonth, formatPct, faDecimal, faNumber, t
 import { makeSearchKey, normalizePersianText, normalizeStoreName, sameNormalizedText } from './lib/text'
 import { planBackupMerge, resolveMergeCurrency } from './lib/merge'
 import { APP_VERSION, BACKUP_REMINDER_DAYS, MAX_BACKUP_FILE_BYTES } from './lib/constants'
+import { startOfPersianMonthISO } from './lib/persian-date'
 import { ChartTooltip } from './components/charts'
 import { ProductForm, PurchaseForm } from './components/forms'
 import { PersianDatePicker } from './components/date-picker'
@@ -53,6 +54,8 @@ export default function App() {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('همه')
   const [sortBy, setSortBy] = useState<'recent'|'change'|'name'>('recent')
+  const [comparisonSort, setComparisonSort] = useState<'recent'|'change'|'name'>('change')
+  const [comparisonDirection, setComparisonDirection] = useState<'asc'|'desc'>('desc')
   const [rangeFrom, setRangeFrom] = useState('')
   const [rangeTo, setRangeTo] = useState(todayISO())
   const [backupPassword, setBackupPassword] = useState('')
@@ -149,10 +152,13 @@ export default function App() {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [page])
 
+  const rangeInvalid = Boolean(rangeFrom && rangeTo && rangeFrom > rangeTo)
+  const filteredPurchases = useMemo(() => rangeInvalid ? [] : filterPurchases(purchases, rangeFrom || undefined, rangeTo || undefined), [purchases, rangeFrom, rangeTo, rangeInvalid])
   const activeProducts = useMemo(() => products.filter(product => !product.archived), [products])
-  const stats = useMemo(() => getProductStats(products, purchases), [products, purchases])
-  const composite = useMemo(() => buildCompositeIndex(purchases), [purchases])
+  const stats = useMemo(() => getProductStats(products, filteredPurchases), [products, filteredPurchases])
+  const composite = useMemo(() => buildCompositeIndex(filteredPurchases, startOfPersianMonthISO(rangeTo || todayISO())), [filteredPurchases, rangeTo])
   const latestComposite = composite.at(-1)
+  const latestComparableComposite = [...composite].reverse().find(point => point.changePct != null)
   const totalIndexChange = composite.length >= 2 ? ((composite.at(-1)!.index / composite[0].index) - 1) * 100 : null
   const categories = useMemo(() => ['همه', ...Array.from(new Set(activeProducts.map(product => product.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'fa'))], [activeProducts])
   const normalizedSearch = useMemo(() => normalizePersianText(search), [search])
@@ -181,14 +187,12 @@ export default function App() {
     .slice(0, 7)
     .map(stat => ({ name: stat.product.name, change: stat.changePct })), [stats])
   const selectedProduct = products.find(product => product.id === selectedProductId)
-  const selectedPurchasesAll = useMemo(() => purchases.filter(purchase => purchase.productId === selectedProductId), [purchases, selectedProductId])
+  const selectedPurchasesAll = useMemo(() => filteredPurchases.filter(purchase => purchase.productId === selectedProductId), [filteredPurchases, selectedProductId])
   const selectedHistory = useMemo(() => sortPurchases(selectedPurchasesAll).map(purchase => ({ date: purchase.date, price: purchase.unitPrice, total: purchase.totalPaid })), [selectedPurchasesAll])
   const selectedStoreDataAll = useMemo(() => storeComparison(selectedProductId, selectedPurchasesAll, stores), [selectedProductId, selectedPurchasesAll, stores])
   const selectedNamedStores = useMemo(() => selectedStoreDataAll.filter(row => row.store !== 'بدون فروشگاه' && row.store !== 'فروشگاه حذف‌شده'), [selectedStoreDataAll])
   const selectedBestStore = selectedNamedStores.length >= 2 ? selectedNamedStores[0] : null
-  const rangeInvalid = Boolean(rangeFrom && rangeTo && rangeFrom > rangeTo)
-  const filteredPurchases = useMemo(() => rangeInvalid ? [] : filterPurchases(purchases, rangeFrom || undefined, rangeTo || undefined), [purchases, rangeFrom, rangeTo, rangeInvalid])
-  const filteredProductHistory = useMemo(() => filteredPurchases.filter(purchase => purchase.productId === selectedProductId), [filteredPurchases, selectedProductId])
+  const filteredProductHistory = selectedPurchasesAll
   const periodChange = periodProductChange(filteredProductHistory)
   const catInflation = useMemo(() => categoryInflation(products, filteredPurchases), [products, filteredPurchases])
   const storeData = useMemo(() => storeComparison(selectedProductId, filteredPurchases, stores), [selectedProductId, filteredPurchases, stores])
@@ -201,8 +205,14 @@ export default function App() {
     .map(stat => ({ name: stat.product.name, volatility: stat.volatilityPct })), [activeProducts, filteredPurchases])
   const recentStats = useMemo(() => stats
     .filter(stat => stat.count > 0 && !stat.product.archived)
-    .sort((a, b) => (b.lastDate ?? '').localeCompare(a.lastDate ?? ''))
-    .slice(0, 8), [stats])
+    .sort((a, b) => (b.lastDate ?? '').localeCompare(a.lastDate ?? '')), [stats])
+  const comparisonStats = useMemo(() => recentStats.slice().sort((a, b) => {
+    let order = 0
+    if (comparisonSort === 'name') order = a.product.name.localeCompare(b.product.name, 'fa')
+    else if (comparisonSort === 'recent') order = (a.lastDate ?? '').localeCompare(b.lastDate ?? '')
+    else order = (a.changePct ?? Number.NEGATIVE_INFINITY) - (b.changePct ?? Number.NEGATIVE_INFINITY)
+    return comparisonDirection === 'asc' ? order : -order
+  }).slice(0, 20), [recentStats, comparisonSort, comparisonDirection])
   const money = (value: number, compact = settings.compactNumbers) => formatMoney(value, settings.currency, compact)
   const isDark = settings.theme === 'dark' || (settings.theme === 'system' && systemDark)
   const lastBackupAt = settings.lastBackupAt ? new Date(settings.lastBackupAt) : null
