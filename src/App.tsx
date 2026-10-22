@@ -242,7 +242,7 @@ export default function App() {
     try {
       if (file.size > MAX_BACKUP_FILE_BYTES) throw new Error('حجم فایل پشتیبان بیشتر از ۵۰ مگابایت است و برای ورود مستقیم مناسب نیست.')
       const data = await parseBackup(await file.text(), backupPassword || undefined)
-      const fileSummary = `${faNumber.format(data.products.length)} کالا، ${faNumber.format(data.purchases.length)} خرید، ${faNumber.format(data.transactions.length)} تراکنش، ${faNumber.format(data.financialSnapshots.length)} معیار مالی و ${faNumber.format(data.stores.length)} فروشگاه`
+      const fileSummary = `${faNumber.format(data.products.length)} کالا، ${faNumber.format(data.purchases.length)} ثبت قیمت و ${faNumber.format(data.stores.length)} فروشگاه`
       if (importMode === 'replace') {
         if (!await askConfirm('جایگزینی داده‌های فعلی', `${fileSummary} وارد می‌شود و تمام داده‌های فعلی جایگزین خواهند شد. بهتر است قبل از ادامه از داده فعلی خروجی بگیرید.`, 'جایگزین کن', true)) return
         await db.transaction('rw', [db.products, db.stores, db.purchases, db.transactions, db.financialSnapshots, db.settings], async () => {
@@ -255,7 +255,7 @@ export default function App() {
         const dedupeNote = plan.dedupedProducts || plan.dedupedStores
           ? ` ${faNumber.format(plan.dedupedProducts)} کالای همسان و ${faNumber.format(plan.dedupedStores)} فروشگاه هم‌نام با رکوردهای فعلی یکپارچه می‌شوند.`
           : ''
-        const currencyNote = adoptIncomingCurrency ? ` چون هنوز رکورد مالی در داده فعلی نیست، واحد پول «${data.settings.currency}» از پشتیبان پذیرفته می‌شود.` : ''
+        const currencyNote = adoptIncomingCurrency ? ` چون هنوز ثبت قیمت در داده فعلی نیست، واحد پول «${data.settings.currency}» از پشتیبان پذیرفته می‌شود.` : ''
         const mergeSummary = `${fileSummary} بررسی می‌شود. رکوردهای هم‌شناسه به‌روزرسانی می‌شوند، موارد همسان ادغام و تنظیمات نمایشی فعلی حفظ می‌شود.${dedupeNote}${currencyNote}`
         if (!await askConfirm('ادغام پشتیبان', mergeSummary, 'ادغام کن')) return
         await db.transaction('rw', [db.products, db.stores, db.purchases, db.transactions, db.financialSnapshots, db.settings], async () => {
@@ -274,7 +274,7 @@ export default function App() {
   }
 
   async function clearAll() {
-    if (!await askConfirm('پاک کردن همه داده‌ها', 'تمام کالاها، فروشگاه‌ها، خریدها، تراکنش‌ها و معیارهای مالی برای همیشه از این مرورگر حذف می‌شوند و این عمل برگشت‌پذیر نیست.', 'همه را پاک کن', true)) return
+    if (!await askConfirm('پاک کردن همه داده‌ها', 'تمام کالاها، فروشگاه‌ها و سابقه قیمت برای همیشه از این مرورگر حذف می‌شوند و این عمل برگشت‌پذیر نیست.', 'همه را پاک کن', true)) return
     await db.transaction('rw', [db.products, db.stores, db.purchases, db.transactions, db.financialSnapshots, db.settings], async()=>{ await db.financialSnapshots.clear(); await db.transactions.clear(); await db.purchases.clear(); await db.stores.clear(); await db.products.clear(); await db.settings.put({ ...settings, lastBackupAt: undefined }) })
     pushToast('همه داده‌ها پاک شدند.', 'info')
   }
