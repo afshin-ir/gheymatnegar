@@ -306,7 +306,7 @@ export default function App() {
     else { setComparisonSort(key); setComparisonDirection(key === 'name' ? 'asc' : 'desc') }
   }
   const renderRangeFilter = () => <section className="panel filter-panel range-panel">
-    <div className="panel-head"><div><h2>بازهٔ بررسی</h2><p>این بازه در داشبورد، فهرست کالاها و تحلیل‌ها یکسان اعمال می‌شود.</p></div></div>
+    <div className="panel-head"><div><h2>بازهٔ بررسی</h2><p>این بازه در داشبورد، فهرست کالاها و تحلیل‌ها یکسان اعمال می‌شود؛ شاخص روی نخستین ماه داده‌دار بازه پایه‌گذاری می‌شود.</p></div></div>
     <div className="filter-grid">
       <div className="field"><span>از تاریخ</span><PersianDatePicker value={rangeFrom} onChange={setRangeFrom} max={todayISO()} allowClear ariaLabel="از تاریخ" placeholder="ابتدای بازه"/></div>
       <div className="field"><span>تا تاریخ</span><PersianDatePicker value={rangeTo} onChange={setRangeTo} max={todayISO()} allowClear ariaLabel="تا تاریخ" placeholder="پایان بازه"/></div>
