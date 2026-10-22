@@ -421,7 +421,7 @@ export default function App() {
 
       <section className="panel">
         <div className="panel-head"><div><h2>مقایسهٔ قیمت کالاها</h2><p>قیمت آغاز و پایان، دامنهٔ قیمت و تغییر در بازهٔ انتخاب‌شده</p></div><button className="text-button" onClick={() => setPage('products')}>فهرست کالاها <ChevronLeft size={16}/></button></div>
-        {comparisonStats.length ? <div className="table-wrap"><table><thead><tr>
+        {comparisonStats.length ? <div className="table-wrap"><table className="comparison-table"><thead><tr>
           <th aria-sort={comparisonSort === 'name' ? comparisonDirection === 'asc' ? 'ascending' : 'descending' : 'none'}><button className="table-sort" onClick={() => toggleComparisonSort('name')}>کالا <span>{comparisonSort === 'name' ? comparisonDirection === 'asc' ? '▲' : '▼' : '↕'}</span></button></th>
           <th>قیمت آغاز بازه</th><th>آخرین قیمت</th><th>کمینه تا بیشینه</th>
           <th aria-sort={comparisonSort === 'change' ? comparisonDirection === 'asc' ? 'ascending' : 'descending' : 'none'}><button className="table-sort" onClick={() => toggleComparisonSort('change')}>تغییر بازه <span>{comparisonSort === 'change' ? comparisonDirection === 'asc' ? '▲' : '▼' : '↕'}</span></button></th>
