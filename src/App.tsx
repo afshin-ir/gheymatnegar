@@ -212,6 +212,7 @@ export default function App() {
     if (comparisonSort === 'name') order = a.product.name.localeCompare(b.product.name, 'fa')
     else if (comparisonSort === 'recent') order = (a.lastDate ?? '').localeCompare(b.lastDate ?? '')
     else {
+      if (a.changePct == null && b.changePct == null) return 0
       if (a.changePct == null) return 1
       if (b.changePct == null) return -1
       order = a.changePct - b.changePct
@@ -424,7 +425,7 @@ export default function App() {
           <th aria-sort={comparisonSort === 'name' ? comparisonDirection === 'asc' ? 'ascending' : 'descending' : 'none'}><button className="table-sort" onClick={() => toggleComparisonSort('name')}>کالا <span>{comparisonSort === 'name' ? comparisonDirection === 'asc' ? '▲' : '▼' : '↕'}</span></button></th>
           <th>قیمت آغاز بازه</th><th>آخرین قیمت</th><th>کمینه تا بیشینه</th>
           <th aria-sort={comparisonSort === 'change' ? comparisonDirection === 'asc' ? 'ascending' : 'descending' : 'none'}><button className="table-sort" onClick={() => toggleComparisonSort('change')}>تغییر بازه <span>{comparisonSort === 'change' ? comparisonDirection === 'asc' ? '▲' : '▼' : '↕'}</span></button></th>
-          <th>ثبت‌ها و تازگی</th>
+          <th>تعداد ثبت</th>
           <th aria-sort={comparisonSort === 'recent' ? comparisonDirection === 'asc' ? 'ascending' : 'descending' : 'none'}><button className="table-sort" onClick={() => toggleComparisonSort('recent')}>آخرین ثبت <span>{comparisonSort === 'recent' ? comparisonDirection === 'asc' ? '▲' : '▼' : '↕'}</span></button></th>
         </tr></thead><tbody>{comparisonStats.map(stat => <tr key={stat.product.id} className="clickable" tabIndex={0} role="button" onClick={() => { selectProduct(stat.product.id); setPage('products') }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectProduct(stat.product.id); setPage('products') } }}>
           <td data-label="کالا"><strong>{stat.product.name}</strong><small>{stat.product.category} · {stat.product.unit}</small></td>
