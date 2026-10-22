@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
-  Activity, Archive, ArrowDownCircle, ArrowUpCircle, Box, Check, ChevronLeft, CloudOff, Database,
-  DollarSign, Download, FileJson, FileSpreadsheet, Gauge, HardDrive, Info, LineChart as LineIcon, LockKeyhole,
+  Activity, Archive, ArrowDownCircle, ArrowUpCircle, ArrowUpRight, Box, Check, ChevronLeft, CloudOff, Database,
+  DollarSign, Download, FileJson, FileSpreadsheet, Gauge, Github, HardDrive, Info, LineChart as LineIcon, LockKeyhole,
   Minus, Moon, PackagePlus, Pencil, Plus, ReceiptText, Search, Settings, ShieldCheck, ShoppingBasket,
   Sun, Trash2, TrendingDown, TrendingUp, Upload, WifiOff, X
 } from 'lucide-react'
@@ -653,7 +653,17 @@ export default function App() {
     <Sidebar page={page} open={sidebarOpen} onNavigate={navigate} onClose={() => setSidebarOpen(false)}/>
     <main className="main">
       <Topbar page={page} online={online} isDark={isDark} onMenu={() => setSidebarOpen(true)} onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')}/>
-      <div className="page-content">{page==='dashboard'?renderDashboard():page==='products'?renderProducts():page==='finance'?renderFinance():page==='analytics'?renderAnalytics():renderData()}</div>
+      <div className="page-content">
+        {page==='dashboard'?renderDashboard():page==='products'?renderProducts():page==='finance'?renderFinance():page==='analytics'?renderAnalytics():renderData()}
+        <footer className="site-footer" aria-label="پاورقی">
+          <span className="site-footer-note">قیمت‌نگار، ابزار ثبت و بررسی قیمت‌های شخصی</span>
+          <a className="site-source-link" href="https://github.com/afshin-ir/gheymatnegar" target="_blank" rel="noreferrer" aria-label="مشاهدهٔ کد منبع قیمت‌نگار در GitHub">
+            <Github size={16} aria-hidden="true"/>
+            <span>مشاهدهٔ کد منبع</span>
+            <ArrowUpRight size={14} aria-hidden="true"/>
+          </a>
+        </footer>
+      </div>
     </main>
     <MobileNavigation page={page} onNavigate={navigate}/>
 
