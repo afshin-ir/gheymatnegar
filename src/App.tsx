@@ -7,7 +7,7 @@ import {
   Sun, Trash2, TrendingDown, TrendingUp, Upload, WifiOff, X
 } from 'lucide-react'
 import {
-  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis
+  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from 'recharts'
 import { db, DEFAULT_SETTINGS } from './lib/db'
 import type { BackupData, Product, Purchase, Store, ThemeMode } from './lib/types'
@@ -31,6 +31,35 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 function pctTone(value: number | null) { return value == null || value === 0 ? 'neutral' : value > 0 ? 'up' : 'down' }
+
+type BarLabelProps = { x?: number; y?: number; width?: number; height?: number; value?: number | string; payload?: { changePct?: number | null } }
+
+function IncreaseBarLabel({ x = 0, y = 0, width = 0, height = 0, value }: BarLabelProps) {
+  if (value == null || !Number.isFinite(Number(value))) return null
+  const label = String(faDecimal.format(Number(value))) + '٪'
+  const inside = width >= 52
+  const labelWidth = Math.max(38, label.length * 7 + 14)
+  const centerY = y + height / 2
+  const badgeX = inside ? x + width - labelWidth - 5 : x + width + 7
+  return <g aria-hidden="true">
+    <rect x={badgeX} y={centerY - 10} width={labelWidth} height={20} rx={7} fill={inside ? '#fff' : 'var(--surface)'} stroke={inside ? 'none' : 'var(--border-strong)'}/>
+    <text x={badgeX + labelWidth / 2} y={centerY + 4} textAnchor="middle" fill="var(--chart-2)" fontSize={11} fontWeight={750}>{label}</text>
+  </g>
+}
+
+function MonthlyChangeLabel({ x = 0, y = 0, width = 0, height = 0, value }: BarLabelProps) {
+  if (value == null || !Number.isFinite(Number(value))) return null
+  const amount = Number(value)
+  const label = String(faDecimal.format(amount)) + '٪'
+  const tone = amount > 0 ? 'var(--danger)' : amount < 0 ? 'var(--success)' : 'var(--muted)'
+  const badgeWidth = Math.max(38, label.length * 6.5 + 14)
+  const centerX = x + width / 2
+  const centerY = amount < 0 ? y + height + 14 : y - 14
+  return <g aria-hidden="true">
+    <rect x={centerX - badgeWidth / 2} y={centerY - 10} width={badgeWidth} height={20} rx={7} fill="var(--surface)" stroke={tone}/>
+    <text x={centerX} y={centerY + 4} textAnchor="middle" fill={tone} fontSize={10.5} fontWeight={750}>{label}</text>
+  </g>
+}
 export default function App() {
   const productsLive = useLiveQuery(() => db.products.toArray())
   const storesLive = useLiveQuery(() => db.stores.toArray())
@@ -408,14 +437,14 @@ export default function App() {
               <defs><linearGradient id="indexFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.3}/><stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0.02}/></linearGradient></defs>
               <CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="month" tickFormatter={formatMonth} tickMargin={10} minTickGap={28} interval="preserveStartEnd"/><YAxis domain={['auto', 'auto']} orientation="right" tickMargin={8}/><Tooltip content={<ChartTooltip valueKey="index" labelFormatter={formatMonth} showIndexCoverage/>}/><Area type="monotone" dataKey="index" stroke="var(--chart-1)" fill="url(#indexFill)" strokeWidth={3}/>
             </AreaChart></ResponsiveContainer></div>
-            <div className="chart-md monthly-change-chart"><div className="section-head"><h3>تغییر شاخص در ماه</h3><span>درصد نسبت به نقطهٔ قبلی شاخص</span></div><ResponsiveContainer width="100%" height="100%"><BarChart data={composite} margin={{ top: 6, right: 12, bottom: 10, left: 8 }}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="month" tickFormatter={formatMonth} tickMargin={10} minTickGap={28} interval="preserveStartEnd"/><YAxis orientation="right" tickFormatter={value => `${faDecimal.format(Number(value))}٪`} width={68}/><Tooltip content={<ChartTooltip valueKey="changePct" suffix="٪" labelFormatter={formatMonth}/>}/><Bar dataKey="changePct" radius={[5, 5, 0, 0]}>{composite.map(point => <Cell key={point.month} fill={point.changePct == null ? 'var(--chart-1)' : point.changePct >= 0 ? 'var(--danger)' : 'var(--success)'}/>)}</Bar></BarChart></ResponsiveContainer></div>
+            <div className="chart-md monthly-change-chart"><div className="section-head"><h3>تغییر شاخص در ماه</h3><span>درصد نسبت به نقطهٔ قبلی شاخص</span></div><ResponsiveContainer width="100%" height="100%"><BarChart data={composite} margin={{ top: 30, right: 12, bottom: 30, left: 8 }}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="month" tickFormatter={formatMonth} tickMargin={10} minTickGap={28} interval="preserveStartEnd"/><YAxis orientation="right" tickFormatter={value => `${faDecimal.format(Number(value))}٪`} width={68}/><Bar dataKey="changePct" radius={[5, 5, 0, 0]}>{composite.map(point => <Cell key={point.month} fill={point.changePct == null ? 'var(--chart-1)' : point.changePct >= 0 ? 'var(--danger)' : 'var(--success)'}/>)}<LabelList dataKey="changePct" content={<MonthlyChangeLabel/>}/></Bar></BarChart></ResponsiveContainer></div>
           </> : <EmptyState icon={<LineIcon size={24}/>} title="برای نمودار دادهٔ بیشتری لازم است" body="قیمت یک یا چند کالا را در دو ماه متفاوت ثبت کنید."/>}
           <div className="chart-note"><Info size={15}/><span>اگر قیمت کالایی چند ماه ثبت نشود، تغییر آن هنگام ثبت دوباره دیده می‌شود. درصدها را همراه با پوشش شاخص و تعداد قیمت‌های ثبت‌شده تفسیر کنید.</span></div>
         </section>
 
         <section className="panel">
           <div className="panel-head"><div><h2>بیشترین افزایش</h2><p>از اولین تا آخرین ثبت هر کالا</p></div></div>
-          {topChanges.length ? <div className="chart-md"><ResponsiveContainer width="100%" height="100%"><BarChart data={topChanges} layout="vertical" margin={{ left: 8, right: 8 }}><CartesianGrid strokeDasharray="4 4" horizontal={false}/><XAxis type="number" tickFormatter={value => `${faDecimal.format(Number(value))}٪`}/><YAxis dataKey="name" type="category" width={104}/><Tooltip content={<ChartTooltip valueKey="change" suffix="٪"/>}/><Bar dataKey="change" fill="var(--chart-2)" radius={[5, 5, 5, 5]}/></BarChart></ResponsiveContainer></div> : <EmptyState title="هنوز مقایسه‌ای نداریم" body="هر کالا به حداقل دو ثبت قیمت نیاز دارد."/>}
+          {topChanges.length ? <div className="chart-md"><ResponsiveContainer width="100%" height="100%"><BarChart data={topChanges} layout="vertical" margin={{ left: 8, right: 58 }}><CartesianGrid strokeDasharray="4 4" horizontal={false}/><XAxis type="number" tickFormatter={value => `${faDecimal.format(Number(value))}٪`}/><YAxis dataKey="name" type="category" width={104}/><Bar dataKey="change" fill="var(--chart-2)" radius={[5, 5, 5, 5]}><LabelList dataKey="change" content={<IncreaseBarLabel/>}/></Bar></BarChart></ResponsiveContainer></div> : <EmptyState title="هنوز مقایسه‌ای نداریم" body="هر کالا به حداقل دو ثبت قیمت نیاز دارد."/>}
         </section>
       </div>
 
