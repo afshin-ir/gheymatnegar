@@ -5,7 +5,7 @@
 - parse/transpile نحوی تمام فایل‌های TS/TSX با TypeScript 5.8.3
 - smoke test منطق pure برای:
   - نرمال‌سازی حروف و رقم فارسی/عربی
-  - شاخص زنجیره‌ای sparse-history
+  - شاخص زنجیره‌ای sparse-history و تفکیک ماه بدون داده از تورم صفر
   - dedup/remap کالا و فروشگاه در Merge
   - جلوگیری از Merge واحد پول ناسازگار
   - نگاشت تاریخ ISO به تقویم شمسی و شروع/ناوبری ماه فارسی
@@ -43,6 +43,12 @@ npm run preview
 10. بعد از `npm run preview` صفحه یک‌بار آنلاین باز، سپس DevTools روی Offline قرار داده و reload شود.
 11. خریدی با مقدار اعشاری و مبلغ پرداختی واقعی ثبت شود؛ قیمت واحد باید از تقسیم این دو ساخته شود.
 12. مبلغ قبل از تخفیف کمتر از مبلغ پرداختی پذیرفته نشود؛ مقدار برابر باید تخفیف صفر بسازد.
+13. بازهٔ ۳۰ روز، ۳/۶ ماه، یک سال و بازهٔ سفارشی را در داشبورد، کالاها و تحلیل‌ها انتخاب کنید؛ هر صفحه باید همان بازه را اعمال کند.
+14. وقتی بین دو ماه دارای قیمت ماه بی‌ثبت وجود دارد، محور زمان باید آن ماه را نشان دهد، شاخص را ثابت نگه دارد و برای درصد تغییر آن ستون نسازد.
+15. در Tooltip نقطهٔ ماه بی‌ثبت باید وضعیت «قیمت ثبت نشده» دیده شود؛ ماه دارای قیمت اما بدون مقایسه هم با ماه بی‌ثبت اشتباه نشود.
+16. در جدول مقایسه کالاها، قیمت آغاز/پایان بازه، کمینه/بیشینه، تغییر مبلغ و درصد، تعداد ثبت و تاریخ آخرین ثبت را بررسی کنید.
+17. عنوان‌های کالا، تغییر بازه و آخرین ثبت را چندبار بزنید؛ ترتیب صعودی/نزولی و نشانگر فعال درست تغییر کند.
+18. در جزئیات کالا، تغییر مبلغ و درصد با همان بازهٔ مشترک هماهنگ باشد و در بازهٔ کم‌داده خط تیره نمایش داده شود.
 
 
 ## Regression checks for automatic basket weighting
@@ -57,9 +63,10 @@ npm run preview
 ## UX regression checks for 1.5.0
 
 - Open each primary tab after scrolling down another page; the window starts at the top.
+- Filter controls appear identically on Dashboard, Products, and Analytics; preset and custom ranges update each view.
 - On the Products page, confirm the primary “ثبت قیمت” action appears before the secondary “کالای جدید” action in RTL visual order.
 - Product detail edit/archive/delete actions render as one grouped control, with delete retaining destructive hover styling.
-- پنجره «ثبت ثبت قیمت جدید» در شروع فیلد مبلغ پرداختی را خنثی نشان دهد؛ پس از ترک فیلد خالی، خطای درون‌خطی ظاهر شود و قیمت واحد محاسبه‌شده در خلاصه دیده شود.
+- پنجره «ثبت قیمت جدید» در شروع فیلد مبلغ پرداختی را خنثی نشان دهد؛ پس از ترک فیلد خالی، خطای درون‌خطی ظاهر شود و قیمت واحد محاسبه‌شده در خلاصه دیده شود.
 - تمام فیلدهای انتخاب تاریخ از Date Picker شمسی مشترک استفاده کنند؛ تاریخ انتخاب‌شده با ماه شمسی نمایش داده شود، تاریخ آینده قابل انتخاب نباشد و Escape تقویم را بدون بستن Modal ببندد.
 - Chart first/last X-axis labels are not visibly clipped at common desktop widths.
 - Sidebar status and descriptive privacy copy are fully Persian except necessary technical names such as IndexedDB/JSON/CSV.
