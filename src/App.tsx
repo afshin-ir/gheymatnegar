@@ -1,36 +1,33 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
-  Activity, Archive, ArrowDownCircle, ArrowUpCircle, ArrowUpRight, Box, Check, ChevronLeft, CloudOff, Database,
-  DollarSign, Download, FileJson, FileSpreadsheet, Gauge, Github, HardDrive, Info, LineChart as LineIcon, LockKeyhole,
-  Minus, Moon, PackagePlus, Pencil, Plus, ReceiptText, Search, Settings, ShieldCheck, ShoppingBasket,
+  Activity, Archive, ArrowUpRight, Box, Check, ChevronLeft, CloudOff, Database,
+  Download, FileJson, FileSpreadsheet, Github, HardDrive, Info, LineChart as LineIcon, LockKeyhole,
+  Minus, Moon, PackagePlus, Pencil, Plus, Search, Settings, ShieldCheck, ShoppingBasket,
   Sun, Trash2, TrendingDown, TrendingUp, Upload, WifiOff, X
 } from 'lucide-react'
 import {
-  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis
+  Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from 'recharts'
 import { db, DEFAULT_SETTINGS } from './lib/db'
-import type { BackupData, FinancialSnapshot, FinancialTransaction, Product, Purchase, Store, ThemeMode, TransactionKind } from './lib/types'
-import { buildCompositeIndex, buildFinancialBenchmarks, buildMonthlyCashflow, categoryInflation, filterPurchases, getProductStats, lastNDaysISO, percentageChange, periodProductChange, sortPurchases, storeComparison, totalSpend, transactionTotal } from './lib/analytics'
-import { downloadText, encryptBackup, financialSnapshotsToCsv, parseBackup, purchasesToCsv, transactionsToCsv } from './lib/backup'
+import type { BackupData, Product, Purchase, Store, ThemeMode } from './lib/types'
+import { buildCompositeIndex, categoryInflation, filterPurchases, getProductStats, lastNDaysISO, periodProductChange, sortPurchases, storeComparison } from './lib/analytics'
+import { downloadText, encryptBackup, parseBackup, purchasesToCsv } from './lib/backup'
 import { formatDate, formatMoney, formatMonth, formatPct, faDecimal, faNumber, todayISO } from './lib/format'
-import { makeDemoData } from './lib/demo'
 import { makeSearchKey, normalizePersianText, normalizeStoreName, sameNormalizedText } from './lib/text'
 import { planBackupMerge, resolveMergeCurrency } from './lib/merge'
 import { APP_VERSION, BACKUP_REMINDER_DAYS, MAX_BACKUP_FILE_BYTES } from './lib/constants'
 import { ChartTooltip } from './components/charts'
-import { FinancialSnapshotForm, ProductForm, PurchaseForm, TransactionForm } from './components/forms'
+import { ProductForm, PurchaseForm } from './components/forms'
 import { PersianDatePicker } from './components/date-picker'
 import { Badge, ConfirmDialog, EmptyState, Modal, StatCard } from './components/ui'
 import { MobileNavigation, Sidebar, Topbar, type PageId } from './components/navigation'
-import { shiftPersianMonthISO, startOfPersianMonthISO } from './lib/persian-date'
 
 type Toast = { id: number; text: string; kind: 'ok'|'error'|'info' }
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
 }
-const CHART_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--chart-6)', 'var(--chart-7)', 'var(--chart-8)']
 
 function pctTone(value: number | null) { return value == null || value === 0 ? 'neutral' : value > 0 ? 'up' : 'down' }
 function growthTone(value: number | null) { return value == null || value === 0 ? 'neutral' : value > 0 ? 'down' : 'up' }
@@ -49,12 +46,9 @@ export default function App() {
   const financialSnapshots = financialSnapshotsLive ?? []
 
   const [page, setPage] = useState<PageId>('dashboard')
-  const [financeMonth, setFinanceMonth] = useState(() => startOfPersianMonthISO(todayISO()))
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [productModal, setProductModal] = useState<{open:boolean; product?:Product|null}>({open:false})
   const [purchaseModal, setPurchaseModal] = useState<{open:boolean; purchase?:Purchase|null; productId?:string}>({open:false})
-  const [transactionModal, setTransactionModal] = useState<{open:boolean; transaction?:FinancialTransaction|null; kind?:TransactionKind}>({open:false})
-  const [financialSnapshotModal, setFinancialSnapshotModal] = useState(false)
   const [selectedProductId, setSelectedProductId] = useState('')
   const [toasts, setToasts] = useState<Toast[]>([])
   const [search, setSearch] = useState('')
@@ -161,54 +155,6 @@ export default function App() {
   const composite = useMemo(() => buildCompositeIndex(purchases), [purchases])
   const latestComposite = composite.at(-1)
   const totalIndexChange = composite.length >= 2 ? ((composite.at(-1)!.index / composite[0].index) - 1) * 100 : null
-  const last30Spend = useMemo(() => totalSpend(filterPurchases(purchases, lastNDaysISO(30), todayISO())), [purchases])
-  const last30OtherExpense = useMemo(() => transactionTotal(transactions.filter(row => row.kind === 'expense' && row.date >= lastNDaysISO(30) && row.date <= todayISO())), [transactions])
-  const cashflow = useMemo(() => buildMonthlyCashflow(purchases, transactions), [purchases, transactions])
-  const currentFinanceMonth = startOfPersianMonthISO(todayISO())
-  const currentCashflow = cashflow.find(point => point.month === currentFinanceMonth)
-  const currentExpense = currentCashflow?.expense ?? 0
-  const financePoint = cashflow.find(point => point.month === financeMonth)
-  const previousCashflow = cashflow.find(point => point.month === shiftPersianMonthISO(financeMonth, -1))
-  const lastYearCashflow = cashflow.find(point => point.month === shiftPersianMonthISO(financeMonth, -12))
-  const financeExpense = financePoint?.expense ?? 0
-  const financeIncome = financePoint?.income ?? 0
-  const monthExpenseChange = previousCashflow ? percentageChange(previousCashflow.expense, financeExpense) : null
-  const yearExpenseChange = lastYearCashflow ? percentageChange(lastYearCashflow.expense, financeExpense) : null
-  const currentTransactions = useMemo(() => transactions.filter(row => startOfPersianMonthISO(row.date) === financeMonth), [transactions, financeMonth])
-  const currentPurchases = useMemo(() => purchases.filter(row => startOfPersianMonthISO(row.date) === financeMonth), [purchases, financeMonth])
-  const financeChart = useMemo(() => cashflow.slice(-12).map(point => ({ ...point, label: formatMonth(point.month) })), [cashflow])
-  const financeMonths = useMemo(() => [...new Set([currentFinanceMonth, ...cashflow.map(point => point.month), ...financialSnapshots.map(snapshot => snapshot.month)])].sort().reverse(), [cashflow, financialSnapshots, currentFinanceMonth])
-  const benchmarks = useMemo(() => buildFinancialBenchmarks(cashflow, financialSnapshots, composite), [cashflow, financialSnapshots, composite])
-  const financeBenchmark = benchmarks.find(point => point.month === financeMonth)
-  const selectedFinancialSnapshot = financialSnapshots.find(snapshot => snapshot.month === financeMonth)
-  const lastYearFinanceBenchmark = benchmarks.find(point => point.month === shiftPersianMonthISO(financeMonth, -12))
-  const yearlyDollarIncomeChange = financeBenchmark?.incomeUsd != null && lastYearFinanceBenchmark?.incomeUsd != null ? percentageChange(lastYearFinanceBenchmark.incomeUsd, financeBenchmark.incomeUsd) : null
-  const yearlySavingsBalanceChange = financeBenchmark?.savingsBalanceUsd != null && lastYearFinanceBenchmark?.savingsBalanceUsd != null ? percentageChange(lastYearFinanceBenchmark.savingsBalanceUsd, financeBenchmark.savingsBalanceUsd) : null
-  const benchmarkChart = useMemo(() => benchmarks.slice(-12).map(point => ({ ...point, label: formatMonth(point.month) })), [benchmarks])
-  const currentExpenseCategories = useMemo(() => {
-    const productCategories = new Map(products.map(product => [product.id, product.category || 'بدون دسته‌بندی']))
-    const sums = new Map<string, number>()
-    for (const row of currentPurchases) {
-      const key = productCategories.get(row.productId) ?? 'کالای حذف‌شده'
-      sums.set(key, (sums.get(key) ?? 0) + row.totalPaid)
-    }
-    for (const row of currentTransactions.filter(item => item.kind === 'expense')) sums.set(row.category, (sums.get(row.category) ?? 0) + row.amount)
-    return [...sums.entries()].map(([name, spend]) => ({ name, spend })).sort((a, b) => b.spend - a.spend)
-  }, [currentPurchases, currentTransactions, products])
-  const currentLedger = useMemo(() => {
-    const productNames = new Map(products.map(product => [product.id, product.name]))
-    const purchaseRows = currentPurchases.map(row => ({
-      id: row.id, date: row.date, kind: 'expense' as const, category: 'خرید کالا',
-      title: productNames.get(row.productId) ?? 'کالای حذف‌شده', amount: row.totalPaid,
-      purchase: row, transaction: undefined,
-    }))
-    const transactionRows = currentTransactions.map(row => ({
-      id: row.id, date: row.date, kind: row.kind, category: row.category,
-      title: row.note || row.category, amount: row.amount,
-      purchase: undefined, transaction: row,
-    }))
-    return [...purchaseRows, ...transactionRows].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id))
-  }, [currentPurchases, currentTransactions, products])
   const categories = useMemo(() => ['همه', ...Array.from(new Set(activeProducts.map(product => product.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'fa'))], [activeProducts])
   const normalizedSearch = useMemo(() => normalizePersianText(search), [search])
   const filteredStats = useMemo(() => {
@@ -249,15 +195,6 @@ export default function App() {
   const storeData = useMemo(() => storeComparison(selectedProductId, filteredPurchases, stores), [selectedProductId, filteredPurchases, stores])
   const namedStoreData = useMemo(() => storeData.filter(row => row.store !== 'بدون فروشگاه' && row.store !== 'فروشگاه حذف‌شده'), [storeData])
   const bestStore = namedStoreData.length >= 2 ? namedStoreData[0] : null
-  const categorySpend = useMemo(() => {
-    const categoriesByProduct = new Map(products.map(product => [product.id, product.category || 'بدون دسته‌بندی']))
-    const sums = new Map<string, number>()
-    for (const purchase of filteredPurchases) {
-      const key = categoriesByProduct.get(purchase.productId) ?? 'کالای حذف‌شده'
-      sums.set(key, (sums.get(key) ?? 0) + purchase.totalPaid)
-    }
-    return [...sums.entries()].map(([name, spend]) => ({ name, spend })).sort((a, b) => b.spend - a.spend).slice(0, 8)
-  }, [products, filteredPurchases])
   const volatility = useMemo(() => getProductStats(activeProducts, filteredPurchases)
     .filter(stat => stat.count >= 2 && stat.volatilityPct != null)
     .sort((a, b) => (b.volatilityPct ?? 0) - (a.volatilityPct ?? 0))
@@ -268,11 +205,10 @@ export default function App() {
     .sort((a, b) => (b.lastDate ?? '').localeCompare(a.lastDate ?? ''))
     .slice(0, 8), [stats])
   const money = (value: number, compact = settings.compactNumbers) => formatMoney(value, settings.currency, compact)
-  const dollarMoney = (value: number | null | undefined) => value == null ? '—' : formatMoney(value, 'دلار', false)
   const isDark = settings.theme === 'dark' || (settings.theme === 'system' && systemDark)
   const lastBackupAt = settings.lastBackupAt ? new Date(settings.lastBackupAt) : null
   const backupAgeDays = lastBackupAt && !Number.isNaN(lastBackupAt.getTime()) ? Math.floor((Date.now() - lastBackupAt.getTime()) / 86_400_000) : null
-  const backupDue = purchases.length + transactions.length + financialSnapshots.length >= 10 && (backupAgeDays == null || backupAgeDays >= BACKUP_REMINDER_DAYS)
+  const backupDue = purchases.length >= 10 && (backupAgeDays == null || backupAgeDays >= BACKUP_REMINDER_DAYS)
 
   if (loading) return <div className="app-loading" role="status" aria-live="polite"><div className="loading-mark"><LineIcon size={28}/></div><strong>قیمت‌نگار</strong><span>در حال آماده‌سازی داده‌های محلی…</span><div className="loading-bar"><i/></div></div>
 
@@ -298,11 +234,8 @@ export default function App() {
     pushToast('پشتیبان رمزگذاری‌شده ساخته شد.')
   }
   function csvExport() {
-    const data = backupObject()
-    downloadText(`gheymat-negar-purchases-${todayISO()}.csv`, purchasesToCsv(data), 'text/csv;charset=utf-8')
-    downloadText(`gheymat-negar-transactions-${todayISO()}.csv`, transactionsToCsv(data), 'text/csv;charset=utf-8')
-    downloadText(`gheymat-negar-financial-benchmarks-${todayISO()}.csv`, financialSnapshotsToCsv(data), 'text/csv;charset=utf-8')
-    pushToast('CSV خریدها، دخل‌وخرج و معیارهای مالی ساخته شد.')
+    downloadText(`gheymat-negar-price-history-${todayISO()}.csv`, purchasesToCsv(backupObject()), 'text/csv;charset=utf-8')
+    pushToast('CSV سابقه قیمت ساخته شد.')
   }
 
   async function importFile(file: File) {
@@ -346,11 +279,6 @@ export default function App() {
     pushToast('همه داده‌ها پاک شدند.', 'info')
   }
 
-  async function loadDemo() {
-    if (products.length || purchases.length || stores.length || transactions.length || financialSnapshots.length) return pushToast('داده نمونه فقط روی دیتابیس خالی اضافه می‌شود. ابتدا پشتیبان بگیرید و داده‌ها را پاک کنید.', 'info')
-    const demo = makeDemoData(); await db.products.bulkAdd(demo.products); await db.stores.bulkAdd(demo.stores); await db.purchases.bulkAdd(demo.purchases); await db.transactions.bulkAdd(demo.transactions); await db.financialSnapshots.bulkAdd(demo.financialSnapshots); pushToast('داده نمونه اضافه شد.')
-  }
-
   async function persistStorage() {
     if (!navigator.storage?.persist) return pushToast('مرورگر شما این قابلیت را پشتیبانی نمی‌کند.', 'error')
     const ok = await navigator.storage.persist(); pushToast(ok ? 'مرورگر اجازه نگهداری پایدار داده‌ها را داد.' : 'مرورگر اجازه ذخیره‌سازی پایدار را نداد.', ok?'ok':'info')
@@ -362,18 +290,6 @@ export default function App() {
   async function deletePurchase(row: Purchase) {
     if (!await askConfirm('حذف رکورد خرید', 'این رکورد از تاریخچه قیمت حذف می‌شود.', 'حذف کن', true)) return
     await db.purchases.delete(row.id); pushToast('رکورد حذف شد.', 'info')
-  }
-  async function deleteTransaction(row: FinancialTransaction) {
-    const label = row.kind === 'expense' ? 'هزینه' : 'درآمد'
-    if (await askConfirm(`حذف ${label}`, `این ${label} از دسته «${row.category}» حذف شود؟`, 'حذف', true)) {
-      await db.transactions.delete(row.id)
-      pushToast(`${label} حذف شد.`, 'info')
-    }
-  }
-  async function deleteFinancialSnapshot(row: FinancialSnapshot) {
-    if (!await askConfirm('حذف معیار مالی ماه', `نرخ دلار و مانده پس‌انداز ${formatMonth(row.month)} حذف شود؟ دخل‌وخرج این ماه دست‌نخورده می‌ماند.`, 'حذف معیار', true)) return
-    await db.financialSnapshots.delete(row.id)
-    pushToast('معیار مالی ماه حذف شد.', 'info')
   }
   async function toggleArchive(product: Product) { await db.products.put({...product, archived:!product.archived, updatedAt:new Date().toISOString()}); pushToast(product.archived?'کالا از آرشیو خارج شد.':'کالا آرشیو شد.', 'info') }
   async function deleteProduct(product: Product) {
@@ -409,28 +325,28 @@ export default function App() {
     <div className="page-heading">
       <div>
         <span className="eyebrow">نمای کلی</span>
-        <h1>داشبورد قیمت و هزینه</h1>
-        <p>روند قیمت‌ها و مخارج واقعی شما؛ بدون ارسال داده‌های ثبت‌شده به سرور.</p>
+        <h1>داشبورد قیمت و تورم</h1>
+        <p>روند تغییر قیمت‌ها و تورم سبد کالاهای شما در طول زمان.</p>
       </div>
-      <div className="button-row page-heading-actions"><button className="button primary" onClick={() => setPurchaseModal({ open: true })} disabled={!activeProducts.length}><Plus size={19}/>ثبت خرید</button><button className="button secondary" onClick={() => setTransactionModal({ open: true, kind: 'expense' })}><ArrowDownCircle size={18}/>ثبت هزینه</button></div>
+      <div className="button-row page-heading-actions"><button className="button primary" onClick={() => setPurchaseModal({ open: true })} disabled={!activeProducts.length}><Plus size={19}/>ثبت قیمت</button><button className="button secondary" onClick={() => setProductModal({ open: true })}><PackagePlus size={18}/>کالای جدید</button></div>
     </div>
 
-    {!products.length && !transactions.length ? <EmptyState
+    {!products.length ? <EmptyState
       icon={<ShoppingBasket size={28}/>}
-      title="از اولین کالا یا تراکنش شروع کنید"
-      body="برای رصد قیمت یک کالا بسازید، یا برای مدیریت مخارج اولین هزینه یا درآمد را ثبت کنید."
-      action={<div className="button-row"><button className="button primary" onClick={() => setProductModal({ open: true })}><PackagePlus size={18}/>افزودن کالا</button><button className="button secondary" onClick={() => setTransactionModal({ open: true, kind: 'expense' })}><ArrowDownCircle size={18}/>ثبت هزینه</button><button className="button secondary" onClick={loadDemo}>داده نمونه</button></div>}
+      title="از ثبت قیمت کالاها شروع کنید"
+      body="برای دنبال‌کردن روند قیمت، کالاهای موردنظر را اضافه و قیمت هرکدام را در زمان‌های مختلف ثبت کنید."
+      action={<button className="button primary" onClick={() => setProductModal({ open: true })}><PackagePlus size={18}/>افزودن کالا</button>}
     /> : <>
       {products.length > 0 && !activeProducts.length ? <section className="onboarding-callout">
         <div className="onboarding-icon"><Archive size={22}/></div>
-        <div><strong>همه کالاها آرشیو شده‌اند</strong><span>برای ثبت خرید جدید، یک کالای آرشیوی را برگردانید یا کالای جدید بسازید.</span></div>
+        <div><strong>همه کالاها آرشیو شده‌اند</strong><span>برای ثبت قیمت تازه، یک کالای آرشیوی را برگردانید یا کالای جدید بسازید.</span></div>
         <button className="button primary small" onClick={() => setProductModal({ open: true })}>کالای جدید</button>
       </section> : null}
 
       {!purchases.length && activeProducts.length ? <section className="onboarding-callout">
         <div className="onboarding-icon"><Plus size={22}/></div>
-        <div><strong>همه‌چیز برای شروع آماده است</strong><span>اولین خرید را ثبت کنید. از ثبت دوم هر کالا، روند و درصد تغییر قیمت معنی‌دار می‌شود.</span></div>
-        <button className="button primary small" onClick={() => setPurchaseModal({ open: true })}>ثبت اولین خرید</button>
+        <div><strong>همه‌چیز برای شروع آماده است</strong><span>اولین قیمت را ثبت کنید؛ با ثبت‌های بعدی، روند و درصد تغییر هر کالا شکل می‌گیرد.</span></div>
+        <button className="button primary small" onClick={() => setPurchaseModal({ open: true })}>ثبت اولین قیمت</button>
       </section> : null}
 
       {backupDue ? <section className="onboarding-callout backup-callout">
@@ -441,9 +357,9 @@ export default function App() {
 
       <div className="stats-grid">
         <StatCard label="شاخص سبد قیمت" value={composite.length ? faDecimal.format(composite.at(-1)!.index) : '—'} hint={totalIndexChange == null ? 'حداقل دو ماه داده لازم است' : `${formatPct(totalIndexChange)} از اولین ماه`} tone={pctTone(totalIndexChange)}/>
-        <StatCard label="هزینه واقعی این ماه" value={money(currentExpense)} hint="خریدها و سایر مخارج ثبت‌شده"/>
-        <StatCard label="هزینه ۳۰ روز اخیر" value={money(last30Spend + last30OtherExpense)} hint="خریدها و سایر مخارج ثبت‌شده"/>
-        <StatCard label="کالاهای فعال" value={faNumber.format(activeProducts.length)} hint={`${faNumber.format(purchases.length)} رکورد قیمت`}/>
+        <StatCard label="تغییر شاخص در آخرین ماه" value={composite.length > 1 ? formatPct(((composite.at(-1)!.index / composite.at(-2)!.index) - 1) * 100) : "—"} hint="بر پایه داده‌های ثبت‌شده" tone={pctTone(composite.length > 1 ? ((composite.at(-1)!.index / composite.at(-2)!.index) - 1) * 100 : null)}/>
+        <StatCard label="کالاهای فعال" value={faNumber.format(activeProducts.length)} hint="در سبد قیمت شما"/>
+        <StatCard label="ثبت‌های قیمت" value={faNumber.format(purchases.length)} hint="برای بررسی روند در طول زمان"/>
       </div>
 
       <div className="dashboard-grid">
@@ -470,7 +386,7 @@ export default function App() {
 
       <section className="panel">
         <div className="panel-head"><div><h2>آخرین تغییرات کالاها</h2><p>قیمت فعلی، کمینه و تغییر نسبت به اولین ثبت</p></div><button className="text-button" onClick={() => setPage('products')}>همه کالاها <ChevronLeft size={16}/></button></div>
-        {recentStats.length ? <div className="table-wrap"><table><thead><tr><th>کالا</th><th>آخرین قیمت</th><th>کمینه</th><th>تغییر کل</th><th>آخرین ثبت</th></tr></thead><tbody>{recentStats.map(stat => <tr key={stat.product.id} className="clickable" tabIndex={0} role="button" onClick={() => { selectProduct(stat.product.id); setPage('products') }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectProduct(stat.product.id); setPage('products') } }}><td data-label="کالا"><strong>{stat.product.name}</strong><small>{stat.product.category}</small></td><td data-label="آخرین قیمت">{money(stat.latest!)}</td><td data-label="کمینه">{money(stat.min!)}</td><td data-label="تغییر کل"><span className={`delta ${pctTone(stat.changePct)}`}>{stat.changePct == null || stat.changePct === 0 ? <Minus size={15}/> : stat.changePct > 0 ? <TrendingUp size={15}/> : <TrendingDown size={15}/>} {formatPct(stat.changePct)}</span></td><td data-label="آخرین ثبت">{stat.lastDate ? formatDate(stat.lastDate) : '—'}</td></tr>)}</tbody></table></div> : <EmptyState icon={<Activity size={24}/>} title="هنوز خریدی ثبت نشده" body="اولین خرید را ثبت کنید تا آخرین قیمت‌ها و تغییرات اینجا نمایش داده شوند." action={activeProducts.length ? <button className="button primary small" onClick={() => setPurchaseModal({ open: true })}><Plus size={17}/>ثبت اولین خرید</button> : undefined}/>} 
+        {recentStats.length ? <div className="table-wrap"><table><thead><tr><th>کالا</th><th>آخرین قیمت</th><th>کمینه</th><th>تغییر کل</th><th>آخرین ثبت</th></tr></thead><tbody>{recentStats.map(stat => <tr key={stat.product.id} className="clickable" tabIndex={0} role="button" onClick={() => { selectProduct(stat.product.id); setPage('products') }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectProduct(stat.product.id); setPage('products') } }}><td data-label="کالا"><strong>{stat.product.name}</strong><small>{stat.product.category}</small></td><td data-label="آخرین قیمت">{money(stat.latest!)}</td><td data-label="کمینه">{money(stat.min!)}</td><td data-label="تغییر کل"><span className={`delta ${pctTone(stat.changePct)}`}>{stat.changePct == null || stat.changePct === 0 ? <Minus size={15}/> : stat.changePct > 0 ? <TrendingUp size={15}/> : <TrendingDown size={15}/>} {formatPct(stat.changePct)}</span></td><td data-label="آخرین ثبت">{stat.lastDate ? formatDate(stat.lastDate) : '—'}</td></tr>)}</tbody></table></div> : <EmptyState icon={<Activity size={24}/>} title="هنوز قیمتی ثبت نشده" body="اولین قیمت را ثبت کنید تا آخرین قیمت‌ها و تغییرات اینجا نمایش داده شوند." action={activeProducts.length ? <button className="button primary small" onClick={() => setPurchaseModal({ open: true })}><Plus size={17}/>ثبت اولین قیمت</button> : undefined}/>} 
       </section>
     </>}
   </>
@@ -481,7 +397,7 @@ export default function App() {
   const renderProducts = () => <>
     <div className="page-heading">
       <div><span className="eyebrow">مدیریت کالا</span><h1>کالاها و تاریخچه قیمت</h1><p>واحد مقایسه هر کالا را ثابت نگه دارید تا روند و درصد تغییر قابل اتکا بماند.</p></div>
-      <div className="button-row page-heading-actions"><button className="button primary" onClick={() => setPurchaseModal({ open: true, productId: selectedProduct && !selectedProduct.archived ? selectedProductId : undefined })} disabled={!activeProducts.length}><Plus size={18}/>ثبت خرید</button><button className="button secondary" onClick={() => setProductModal({ open: true })}><PackagePlus size={18}/>کالای جدید</button></div>
+      <div className="button-row page-heading-actions"><button className="button primary" onClick={() => setPurchaseModal({ open: true, productId: selectedProduct && !selectedProduct.archived ? selectedProductId : undefined })} disabled={!activeProducts.length}><Plus size={18}/>ثبت قیمت</button><button className="button secondary" onClick={() => setProductModal({ open: true })}><PackagePlus size={18}/>کالای جدید</button></div>
     </div>
 
     <div className="product-layout">
@@ -505,7 +421,7 @@ export default function App() {
           <button className="text-button mobile-list-back" onClick={() => productListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>بازگشت به فهرست کالاها</button>
           <div className="detail-head">
             <div><span className="eyebrow">{selectedProduct.category}</span><h2>{selectedProduct.name}</h2><p>{selectedProduct.brand ? `${selectedProduct.brand} · ` : ''}هر قیمت برای یک {selectedProduct.unit}</p></div>
-            <div className="detail-actions"><button className="button primary small detail-buy" onClick={() => setPurchaseModal({ open: true, productId: selectedProduct.id })}><Plus size={16}/>ثبت خرید</button><div className="kebab-row"><button className="icon-button" title="ویرایش" aria-label="ویرایش کالا" onClick={() => setProductModal({ open: true, product: selectedProduct })}><Pencil size={18}/></button><button className="icon-button" title="آرشیو" aria-label="آرشیو کالا" onClick={() => toggleArchive(selectedProduct)}><Archive size={18}/></button><button className="icon-button danger-icon" title="حذف" aria-label="حذف کالا" onClick={() => deleteProduct(selectedProduct)}><Trash2 size={18}/></button></div></div>
+            <div className="detail-actions"><button className="button primary small detail-buy" onClick={() => setPurchaseModal({ open: true, productId: selectedProduct.id })}><Plus size={16}/>ثبت قیمت</button><div className="kebab-row"><button className="icon-button" title="ویرایش" aria-label="ویرایش کالا" onClick={() => setProductModal({ open: true, product: selectedProduct })}><Pencil size={18}/></button><button className="icon-button" title="آرشیو" aria-label="آرشیو کالا" onClick={() => toggleArchive(selectedProduct)}><Archive size={18}/></button><button className="icon-button danger-icon" title="حذف" aria-label="حذف کالا" onClick={() => deleteProduct(selectedProduct)}><Trash2 size={18}/></button></div></div>
           </div>
 
           <div className="mini-stats"><div><span>آخرین</span><strong>{selectedStat.latest == null ? '—' : money(selectedStat.latest)}</strong></div><div><span>کمینه</span><strong>{selectedStat.min == null ? '—' : money(selectedStat.min)}</strong></div><div><span>بیشینه</span><strong>{selectedStat.max == null ? '—' : money(selectedStat.max)}</strong></div><div><span>تغییر</span><strong className={`tone-${pctTone(selectedStat.changePct)}`}>{formatPct(selectedStat.changePct)}</strong></div></div>
@@ -513,66 +429,13 @@ export default function App() {
           {selectedBestStore ? <div className="insight-strip"><ShoppingBasket size={17}/><div><strong>کمترین میانگین وزنی: {selectedBestStore.store}</strong><span>{money(selectedBestStore.avg)} · بر اساس {faNumber.format(selectedBestStore.count)} خرید</span></div></div> : null}
           {selectedProduct.notes ? <div className="product-note"><Info size={16}/><span>{selectedProduct.notes}</span></div> : null}
 
-          {selectedHistory.length > 1 ? <div className="chart-lg"><ResponsiveContainer width="100%" height="100%"><LineChart data={selectedHistory} margin={{ top: 6, right: 12, bottom: 10, left: 8 }}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="date" tickFormatter={formatDate} tickMargin={10} minTickGap={34} interval="preserveStartEnd"/><YAxis orientation="right" tickFormatter={value => faNumber.format(Number(value))} width={76} tickMargin={8}/><Tooltip content={<ChartTooltip valueKey="price" isMoney currency={settings.currency} compactMoney={settings.compactNumbers} labelFormatter={formatDate}/>}/><Line type="monotone" dataKey="price" stroke="var(--chart-1)" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }}/></LineChart></ResponsiveContainer></div> : <EmptyState icon={<Activity size={24}/>} title="تاریخچه هنوز کوتاه است" body="بعد از ثبت دومین خرید، روند قیمت این کالا اینجا نمایش داده می‌شود." action={<button className="button primary small" onClick={() => setPurchaseModal({ open: true, productId: selectedProduct.id })}><Plus size={17}/>ثبت خرید</button>}/>} 
+          {selectedHistory.length > 1 ? <div className="chart-lg"><ResponsiveContainer width="100%" height="100%"><LineChart data={selectedHistory} margin={{ top: 6, right: 12, bottom: 10, left: 8 }}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="date" tickFormatter={formatDate} tickMargin={10} minTickGap={34} interval="preserveStartEnd"/><YAxis orientation="right" tickFormatter={value => faNumber.format(Number(value))} width={76} tickMargin={8}/><Tooltip content={<ChartTooltip valueKey="price" isMoney currency={settings.currency} compactMoney={settings.compactNumbers} labelFormatter={formatDate}/>}/><Line type="monotone" dataKey="price" stroke="var(--chart-1)" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }}/></LineChart></ResponsiveContainer></div> : <EmptyState icon={<Activity size={24}/>} title="تاریخچه هنوز کوتاه است" body="بعد از ثبت دومین خرید، روند قیمت این کالا اینجا نمایش داده می‌شود." action={<button className="button primary small" onClick={() => setPurchaseModal({ open: true, productId: selectedProduct.id })}><Plus size={17}/>ثبت قیمت</button>}/>} 
 
-          <div className="section-head"><h3>سوابق خرید</h3><span>{faNumber.format(selectedPurchasesAll.length)} رکورد</span></div>
-          <div className="history-list">{sortPurchases(selectedPurchasesAll).reverse().map(row => { const store = stores.find(item => item.id === row.storeId); return <div className="history-row" key={row.id}><div className="history-date"><strong>{formatDate(row.date)}</strong><small>{store?.name ?? 'بدون فروشگاه'}</small></div><div><strong>{money(row.unitPrice, false)}</strong><small>{faNumber.format(row.quantity)} {selectedProduct.unit} · جمع {money(row.totalPaid)}</small></div><div className="row-actions"><button className="icon-button tiny" aria-label="ویرایش خرید" title="ویرایش خرید" onClick={() => setPurchaseModal({ open: true, purchase: row })}><Pencil size={15}/></button><button className="icon-button tiny danger-icon" aria-label="حذف خرید" title="حذف خرید" onClick={() => deletePurchase(row)}><Trash2 size={15}/></button></div></div> })}</div>
+          <div className="section-head"><h3>سوابق قیمت</h3><span>{faNumber.format(selectedPurchasesAll.length)} رکورد</span></div>
+          <div className="history-list">{sortPurchases(selectedPurchasesAll).reverse().map(row => { const store = stores.find(item => item.id === row.storeId); return <div className="history-row" key={row.id}><div className="history-date"><strong>{formatDate(row.date)}</strong><small>{store?.name ?? 'بدون فروشگاه'}</small></div><div><strong>{money(row.unitPrice, false)}</strong><small>{faNumber.format(row.quantity)} {selectedProduct.unit} · جمع {money(row.totalPaid)}</small></div><div className="row-actions"><button className="icon-button tiny" aria-label="ویرایش ثبت قیمت" title="ویرایش ثبت قیمت" onClick={() => setPurchaseModal({ open: true, purchase: row })}><Pencil size={15}/></button><button className="icon-button tiny danger-icon" aria-label="حذف ثبت قیمت" title="حذف ثبت قیمت" onClick={() => deletePurchase(row)}><Trash2 size={15}/></button></div></div> })}</div>
         </> : <EmptyState icon={<Box size={24}/>} title="یک کالا انتخاب کنید" body="جزئیات و نمودار قیمت اینجا نشان داده می‌شود."/>}
       </section>
     </div>
-  </>
-
-  const renderFinance = () => <>
-    <div className="page-heading">
-      <div><span className="eyebrow">حسابداری شخصی ساده</span><h1>دخل‌وخرج واقعی من</h1><p>خریدهای کالا خودکار جزو هزینه‌ها هستند؛ درآمدها و هزینه‌های دیگری مثل اجاره، قبض و رفت‌وآمد را اینجا ثبت کنید.</p></div>
-      <div className="button-row page-heading-actions"><button className="button primary" onClick={() => setTransactionModal({ open: true, kind: 'expense' })}><ArrowDownCircle size={18}/>ثبت هزینه</button><button className="button secondary" onClick={() => setTransactionModal({ open: true, kind: 'income' })}><ArrowUpCircle size={18}/>ثبت درآمد</button><button className="button secondary" onClick={() => setFinancialSnapshotModal(true)}><DollarSign size={18}/>{selectedFinancialSnapshot ? 'ویرایش معیار دلار' : 'ثبت معیار دلار'}</button></div>
-    </div>
-
-    <section className="panel finance-month-picker"><label className="field"><span>ماه گزارش</span><select value={financeMonth} onChange={event => setFinanceMonth(event.target.value)}>{financeMonths.map(month => <option value={month} key={month}>{formatMonth(month)}{month === currentFinanceMonth ? ' (تا امروز)' : ''}</option>)}</select></label></section>
-
-    <div className="stats-grid">
-      <StatCard label="هزینه ماه انتخابی" value={money(financeExpense)} hint={`${money(financePoint?.purchaseExpense ?? 0)} خرید کالا + ${money(financePoint?.otherExpense ?? 0)} سایر هزینه‌ها`}/>
-      <StatCard label="درآمد ماه انتخابی" value={money(financeIncome)} hint={`${faNumber.format(currentTransactions.filter(row => row.kind === 'income').length)} ثبت درآمد`}/>
-      <StatCard label="مانده ماه انتخابی" value={money(financeIncome - financeExpense)} hint={financeIncome - financeExpense >= 0 ? 'درآمد منهای همه هزینه‌ها' : 'کسری ماه انتخابی'} tone={financeIncome - financeExpense === 0 ? 'neutral' : financeIncome - financeExpense > 0 ? 'down' : 'up'}/>
-      <StatCard label="تغییر نسبت به ماه قبل" value={formatPct(monthExpenseChange)} hint={yearExpenseChange == null ? 'برای مقایسه سالانه داده کافی نیست' : `${formatPct(yearExpenseChange)} نسبت به ماه مشابه پارسال`} tone={pctTone(monthExpenseChange)}/>
-    </div>
-
-    {!selectedFinancialSnapshot ? <div className="onboarding-callout benchmark-callout"><div className="onboarding-icon"><DollarSign size={20}/></div><div><strong>برای {formatMonth(financeMonth)} نرخ دلار ثبت نشده است</strong><span>نرخ معیار ابتدای ماه را وارد کنید تا درآمد، پس‌انداز ماه و مانده کل پس‌انداز به دلار سنجیده شوند.</span></div><button className="button primary small" onClick={() => setFinancialSnapshotModal(true)}>ثبت نرخ و پس‌انداز</button></div> : <>
-      <div className="stats-grid benchmark-stats">
-        <StatCard label="درآمد دلاری" value={dollarMoney(financeBenchmark?.incomeUsd)} hint={`${money(financeIncome)} ÷ نرخ ${money(selectedFinancialSnapshot.usdRate, false)}`}/>
-        <StatCard label="پس‌انداز دلاری این ماه" value={dollarMoney(financeBenchmark?.monthlySavingUsd)} hint={financeBenchmark?.savingsRatePct == null ? 'درآمدی برای محاسبه نرخ پس‌انداز نیست' : `نرخ پس‌انداز ${formatPct(financeBenchmark.savingsRatePct)}`} tone={growthTone(financeBenchmark?.monthlySavingUsd ?? null)}/>
-        <StatCard label="ارزش دلاری کل پس‌انداز" value={dollarMoney(financeBenchmark?.savingsBalanceUsd)} hint={financeBenchmark?.savingsBalance == null ? 'مانده کل پس‌انداز وارد نشده' : yearlySavingsBalanceChange == null ? money(financeBenchmark.savingsBalance) : `${formatPct(yearlySavingsBalanceChange)} نسبت به پارسال`} tone={growthTone(yearlySavingsBalanceChange)}/>
-        <StatCard label="رشد درآمد دلاری" value={formatPct(financeBenchmark?.dollarIncomeChangePct)} hint={yearlyDollarIncomeChange == null ? 'نسبت به ماه قبل' : `${formatPct(yearlyDollarIncomeChange)} نسبت به پارسال`} tone={growthTone(financeBenchmark?.dollarIncomeChangePct ?? null)}/>
-      </div>
-
-      <section className="panel benchmark-panel">
-        <div className="panel-head"><div><h2>درآمد در برابر دلار و تورم شخصی</h2><p>تورم شخصی از تغییر سبد قیمت‌های ثبت‌شده شما محاسبه می‌شود؛ نرخ دلار و مانده کل پس‌انداز دستی هستند.</p></div><div className="row-actions"><button className="icon-button tiny" title="ویرایش معیار" aria-label="ویرایش معیار مالی" onClick={() => setFinancialSnapshotModal(true)}><Pencil size={15}/></button><button className="icon-button tiny danger-icon" title="حذف معیار" aria-label="حذف معیار مالی" onClick={() => deleteFinancialSnapshot(selectedFinancialSnapshot)}><Trash2 size={15}/></button></div></div>
-        <div className="benchmark-summary">
-          <div><span>رشد اسمی درآمد</span><strong className={`tone-${growthTone(financeBenchmark?.nominalIncomeChangePct ?? null)}`}>{formatPct(financeBenchmark?.nominalIncomeChangePct)}</strong><small>نسبت به ماه قبل</small></div>
-          <div><span>تورم شخصی</span><strong className={`tone-${pctTone(financeBenchmark?.personalInflationPct ?? null)}`}>{formatPct(financeBenchmark?.personalInflationPct)}</strong><small>بر پایه سبد واقعی کالاها</small></div>
-          <div><span>رشد واقعی درآمد</span><strong className={`tone-${growthTone(financeBenchmark?.realIncomeChangePct ?? null)}`}>{formatPct(financeBenchmark?.realIncomeChangePct)}</strong><small>پس از کسر اثر تورم شخصی</small></div>
-        </div>
-        {benchmarkChart.some(point => point.incomeUsd != null || point.savingsBalanceUsd != null) ? <div className="chart-lg benchmark-chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={benchmarkChart} margin={{ top: 6, right: 12, bottom: 10, left: 8 }}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="label" tickMargin={10} minTickGap={24}/><YAxis orientation="right" tickFormatter={value => faNumber.format(Number(value))} width={76}/><Tooltip content={<ChartTooltip isMoney currency="دلار" series={[{ key: 'incomeUsd', label: 'درآمد دلاری' }, { key: 'savingsBalanceUsd', label: 'کل پس‌انداز دلاری' }]}/>} /><Line type="monotone" dataKey="incomeUsd" connectNulls stroke="var(--chart-1)" strokeWidth={3} dot={{ r: 3 }}/><Line type="monotone" dataKey="savingsBalanceUsd" connectNulls stroke="var(--chart-4)" strokeWidth={3} dot={{ r: 3 }}/></LineChart></ResponsiveContainer></div> : null}
-        <div className="benchmark-footnote"><Info size={16}/><span>نرخ ثبت‌شده برای {formatDate(selectedFinancialSnapshot.rateDate)} است{selectedFinancialSnapshot.note ? `؛ ${selectedFinancialSnapshot.note}` : ''}. نتیجه‌ها فقط برای خودسنجی هستند و توصیه سرمایه‌گذاری محسوب نمی‌شوند.</span></div>
-      </section>
-    </>}
-
-    <div className="finance-grid">
-      <section className="panel panel-wide">
-        <div className="panel-head"><div><h2>روند ماهانه دخل‌وخرج</h2><p>جمع خریدهای ثبت‌شده و سایر هزینه‌ها در ماه‌های هجری شمسی</p></div><Badge tone="info">{formatMonth(financeMonth)}{financeMonth === currentFinanceMonth ? ' تا امروز' : ''}</Badge></div>
-        {financeChart.length ? <div className="chart-lg"><ResponsiveContainer width="100%" height="100%"><BarChart data={financeChart} margin={{ top: 6, right: 12, bottom: 10, left: 8 }}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="label" tickMargin={10} minTickGap={24}/><YAxis orientation="right" tickFormatter={value => faNumber.format(Number(value))} width={80}/><Tooltip content={<ChartTooltip isMoney currency={settings.currency} compactMoney={settings.compactNumbers} series={[{ key: 'expense', label: 'هزینه' }, { key: 'income', label: 'درآمد' }]}/>} /><Bar dataKey="expense" name="هزینه" fill="var(--chart-2)" radius={[6, 6, 0, 0]}/><Bar dataKey="income" name="درآمد" fill="var(--chart-4)" radius={[6, 6, 0, 0]}/></BarChart></ResponsiveContainer></div> : <EmptyState icon={<ReceiptText size={24}/>} title="هنوز تراکنشی ثبت نشده" body="با ثبت خرید، هزینه یا درآمد، نمودار ماهانه ساخته می‌شود."/>}
-      </section>
-
-      <section className="panel">
-        <div className="panel-head"><div><h2>سبد هزینه ماه انتخابی</h2><p>سهم دسته‌ها از مخارج واقعی شما</p></div></div>
-        {currentExpenseCategories.length ? <div className="pie-wrap"><div className="chart-md"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={currentExpenseCategories} dataKey="spend" nameKey="name" innerRadius="48%" outerRadius="78%" paddingAngle={2}>{currentExpenseCategories.map((_, index) => <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]}/>)}</Pie><Tooltip content={<ChartTooltip valueKey="spend" isMoney currency={settings.currency} compactMoney={settings.compactNumbers}/>} /></PieChart></ResponsiveContainer></div><div className="pie-legend">{currentExpenseCategories.slice(0, 8).map((item, index) => <div key={item.name}><span style={{ background: CHART_COLORS[index % CHART_COLORS.length] }}/><strong>{item.name}</strong><small>{money(item.spend)}</small></div>)}</div></div> : <EmptyState title="هزینه‌ای در این ماه نیست" body="خریدها و هزینه‌های مستقل اینجا یکجا دیده می‌شوند."/>}
-      </section>
-    </div>
-
-    <section className="panel">
-      <div className="panel-head"><div><h2>دفتر ماه انتخابی</h2><p>خریدهای کالا و تراکنش‌های مستقل، بدون ثبت تکراری</p></div><span>{faNumber.format(currentLedger.length)} رکورد</span></div>
-      {currentLedger.length ? <div className="transaction-list">{currentLedger.map(row => <div className="transaction-row" key={`${row.purchase ? 'purchase' : 'transaction'}-${row.id}`}><span className={`transaction-kind ${row.kind}`} aria-hidden="true">{row.kind === 'income' ? <ArrowUpCircle size={18}/> : <ArrowDownCircle size={18}/>}</span><div className="transaction-main"><strong>{row.title}</strong><small>{row.category} · {formatDate(row.date)}</small></div><strong className={`transaction-amount ${row.kind}`}>{row.kind === 'income' ? '+' : '−'} {money(row.amount)}</strong><div className="row-actions"><button className="icon-button tiny" aria-label="ویرایش رکورد" onClick={() => row.purchase ? setPurchaseModal({ open: true, purchase: row.purchase }) : setTransactionModal({ open: true, transaction: row.transaction })}><Pencil size={15}/></button><button className="icon-button tiny danger-icon" aria-label="حذف رکورد" onClick={() => row.purchase ? deletePurchase(row.purchase) : row.transaction && deleteTransaction(row.transaction)}><Trash2 size={15}/></button></div></div>)}</div> : <EmptyState title="دفتر این ماه خالی است" body="اولین هزینه، درآمد یا خرید را ثبت کنید."/>}
-    </section>
   </>
 
   const renderAnalytics = () => <>
@@ -597,9 +460,9 @@ export default function App() {
 
       <section className="panel"><div className="panel-head"><div><h2>نوسان قیمت کالاها</h2><p>شدت متوسط تغییر بین ثبت‌های متوالی؛ عدد بیشتر یعنی قیمت ناپایدارتر</p></div></div>{volatility.length ? <div className="chart-md"><ResponsiveContainer width="100%" height="100%"><BarChart data={volatility} layout="vertical"><CartesianGrid strokeDasharray="4 4" horizontal={false}/><XAxis type="number" tickFormatter={value => `${faDecimal.format(Number(value))}٪`}/><YAxis type="category" dataKey="name" width={104}/><Tooltip content={<ChartTooltip valueKey="volatility" suffix="٪"/>}/><Bar dataKey="volatility" fill="var(--chart-3)" radius={[5, 5, 5, 5]}/></BarChart></ResponsiveContainer></div> : <EmptyState title="داده کافی نیست" body="برای سنجش نوسان به چند ثبت متوالی نیاز است."/>}</section>
 
-      <section className="panel"><div className="panel-head"><div><h2>مقایسه فروشگاه‌ها</h2><p>میانگین وزنی قیمت {selectedProduct?.name ?? 'کالای انتخابی'} در هر فروشگاه</p></div>{bestStore ? <Badge tone="success">کمترین: {bestStore.store}</Badge> : null}</div>{storeData.length ? <div className="chart-md"><ResponsiveContainer width="100%" height="100%"><BarChart data={storeData}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="store" tickMargin={10} minTickGap={18}/><YAxis orientation="right" tickMargin={8} tickFormatter={value => faNumber.format(Number(value))} width={76}/><Tooltip content={<ChartTooltip valueKey="avg" isMoney currency={settings.currency} compactMoney={settings.compactNumbers}/>}/><Bar dataKey="avg" fill="var(--chart-4)" radius={[7, 7, 0, 0]}/></BarChart></ResponsiveContainer></div> : <EmptyState title="فروشگاهی ثبت نشده" body="هنگام ثبت خرید نام فروشگاه را وارد کنید تا این مقایسه ساخته شود."/>}</section>
+      <section className="panel"><div className="panel-head"><div><h2>مقایسه فروشگاه‌ها</h2><p>میانگین وزنی قیمت {selectedProduct?.name ?? 'کالای انتخابی'} در هر فروشگاه</p></div>{bestStore ? <Badge tone="success">کمترین: {bestStore.store}</Badge> : null}</div>{storeData.length ? <div className="chart-md"><ResponsiveContainer width="100%" height="100%"><BarChart data={storeData}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="store" tickMargin={10} minTickGap={18}/><YAxis orientation="right" tickMargin={8} tickFormatter={value => faNumber.format(Number(value))} width={76}/><Tooltip content={<ChartTooltip valueKey="avg" isMoney currency={settings.currency} compactMoney={settings.compactNumbers}/>}/><Bar dataKey="avg" fill="var(--chart-4)" radius={[7, 7, 0, 0]}/></BarChart></ResponsiveContainer></div> : <EmptyState title="فروشگاهی ثبت نشده" body="هنگام ثبت قیمت نام فروشگاه را وارد کنید تا این مقایسه ساخته شود."/>}</section>
 
-      <section className="panel"><div className="panel-head"><div><h2>سهم هزینه دسته‌ها</h2><p>تقسیم مبلغ خریدهای ثبت‌شده در بازه انتخابی</p></div></div>{categorySpend.length ? <div className="pie-wrap"><div className="chart-md"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={categorySpend} dataKey="spend" nameKey="name" innerRadius="48%" outerRadius="78%" paddingAngle={2}>{categorySpend.map((_, index) => <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]}/>)}</Pie><Tooltip content={<ChartTooltip valueKey="spend" isMoney currency={settings.currency} compactMoney={settings.compactNumbers}/>}/></PieChart></ResponsiveContainer></div><div className="pie-legend">{categorySpend.map((item, index) => <div key={item.name}><span style={{ background: CHART_COLORS[index % CHART_COLORS.length] }}/><strong>{item.name}</strong><small>{money(item.spend)}</small></div>)}</div></div> : <EmptyState title="هزینه‌ای در بازه نیست" body="با ثبت خرید، سهم هزینه دسته‌ها اینجا دیده می‌شود."/>}</section>
+      
     </div>
   </>
 
@@ -624,18 +487,18 @@ export default function App() {
       <section className="panel">
         <div className="settings-title"><div className="settings-icon"><Sun size={22}/></div><div><h2>نمایش</h2><p>تنظیمات ظاهری روی همین دستگاه ذخیره می‌شوند.</p></div></div>
         <div className="theme-picker"><button className={settings.theme === 'system' ? 'active' : ''} onClick={() => setTheme('system')}><Settings size={18}/>سیستم</button><button className={settings.theme === 'light' ? 'active' : ''} onClick={() => setTheme('light')}><Sun size={18}/>روشن</button><button className={settings.theme === 'dark' ? 'active' : ''} onClick={() => setTheme('dark')}><Moon size={18}/>تیره</button></div>
-        <label className="field"><span>واحد پول</span><input key={settings.currency} defaultValue={settings.currency} disabled={purchases.length + transactions.length + financialSnapshots.length > 0} onBlur={event => db.settings.put({ ...settings, currency: event.target.value.trim() || 'تومان' })} placeholder="تومان"/><small className="field-help">{purchases.length + transactions.length + financialSnapshots.length ? 'برای جلوگیری از برچسب‌گذاری اشتباه مبالغ قبلی، واحد پول بعد از اولین رکورد مالی قفل می‌شود.' : 'این گزینه واحد نمایش همه مبالغ است؛ قبل از شروع ثبت داده آن را مشخص کنید.'}</small></label>
+        <label className="field"><span>واحد پول</span><input key={settings.currency} defaultValue={settings.currency} disabled={purchases.length > 0} onBlur={event => db.settings.put({ ...settings, currency: event.target.value.trim() || 'تومان' })} placeholder="تومان"/><small className="field-help">{purchases.length ? 'برای جلوگیری از برچسب‌گذاری اشتباه قیمت‌های قبلی، واحد پول پس از اولین ثبت قیمت قفل می‌شود.' : 'واحد نمایش مبالغ قیمت را پیش از شروع ثبت انتخاب کنید.'}</small></label>
         <label className="switch-row"><div><strong>نمایش اعداد فشرده</strong><small>برای کارت‌ها و نمودارها از نمایش‌هایی مثل «۱٫۲ میلیون» استفاده شود.</small></div><input type="checkbox" checked={settings.compactNumbers} onChange={event => db.settings.put({ ...settings, compactNumbers: event.target.checked })}/></label>
       </section>
 
       <section className="panel">
         <div className="settings-title"><div className="settings-icon"><ShoppingBasket size={22}/></div><div><h2>مدیریت فروشگاه‌ها</h2><p>نام‌های اشتباه را اصلاح کنید؛ حذف فروشگاه فقط ارتباط نام فروشگاه را از خریدها پاک می‌کند.</p></div></div>
-        {stores.length ? <div className="store-list">{[...stores].sort((a, b) => a.name.localeCompare(b.name, 'fa')).map(store => <div className="store-manage-row" key={store.id}><div><strong>{store.name}</strong><small>{faNumber.format(purchases.filter(purchase => purchase.storeId === store.id).length)} خرید</small></div><div className="row-actions"><button className="icon-button tiny" onClick={() => renameStore(store)} title="ویرایش فروشگاه" aria-label="ویرایش فروشگاه"><Pencil size={15}/></button><button className="icon-button tiny danger-icon" onClick={() => deleteStore(store)} title="حذف فروشگاه" aria-label="حذف فروشگاه"><Trash2 size={15}/></button></div></div>)}</div> : <EmptyState title="فروشگاهی ثبت نشده" body="هنگام ثبت خرید می‌توانید نام فروشگاه را بنویسید."/>}
+        {stores.length ? <div className="store-list">{[...stores].sort((a, b) => a.name.localeCompare(b.name, 'fa')).map(store => <div className="store-manage-row" key={store.id}><div><strong>{store.name}</strong><small>{faNumber.format(purchases.filter(purchase => purchase.storeId === store.id).length)} خرید</small></div><div className="row-actions"><button className="icon-button tiny" onClick={() => renameStore(store)} title="ویرایش فروشگاه" aria-label="ویرایش فروشگاه"><Pencil size={15}/></button><button className="icon-button tiny danger-icon" onClick={() => deleteStore(store)} title="حذف فروشگاه" aria-label="حذف فروشگاه"><Trash2 size={15}/></button></div></div>)}</div> : <EmptyState title="فروشگاهی ثبت نشده" body="هنگام ثبت قیمت می‌توانید نام فروشگاه را بنویسید."/>}
       </section>
 
       <section className="panel danger-panel">
-        <div className="settings-title"><div className="settings-icon"><Database size={22}/></div><div><h2>ابزار داده</h2><p>برای تست می‌توانید روی دیتابیس خالی داده نمونه بسازید یا داده‌های عملیاتی را پاک کنید.</p></div></div>
-        <div className="button-row"><button className="button secondary" onClick={loadDemo}><Gauge size={18}/>افزودن داده نمونه</button><button className="button danger" onClick={clearAll}><Trash2 size={18}/>پاک کردن همه داده‌ها</button></div>
+        <div className="settings-title"><div className="settings-icon"><Database size={22}/></div><div><h2>پاک‌سازی داده‌ها</h2><p>این کار همه قیمت‌ها، کالاها و فروشگاه‌های ذخیره‌شده را از این مرورگر حذف می‌کند.</p></div></div>
+        <div className="button-row"><button className="button danger" onClick={clearAll}><Trash2 size={18}/>پاک کردن همه داده‌ها</button></div>
       </section>
     </div>
   </>
@@ -654,7 +517,7 @@ export default function App() {
     <main className="main">
       <Topbar page={page} online={online} isDark={isDark} onMenu={() => setSidebarOpen(true)} onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')}/>
       <div className="page-content">
-        {page==='dashboard'?renderDashboard():page==='products'?renderProducts():page==='finance'?renderFinance():page==='analytics'?renderAnalytics():renderData()}
+        {page==='dashboard'?renderDashboard():page==='products'?renderProducts():page==='analytics'?renderAnalytics():renderData()}
         <footer className="site-footer" aria-label="پاورقی">
           <span className="site-footer-note">قیمت‌نگار، ابزار ثبت و بررسی قیمت‌های شخصی</span>
           <a className="site-source-link" href="https://github.com/afshin-ir/gheymatnegar" target="_blank" rel="noreferrer" aria-label="مشاهدهٔ کد منبع قیمت‌نگار در GitHub">
@@ -668,9 +531,7 @@ export default function App() {
     <MobileNavigation page={page} onNavigate={navigate}/>
 
     <Modal open={productModal.open} title={productModal.product?'ویرایش کالا':'افزودن کالای جدید'} onClose={()=>setProductModal({open:false})} wide><ProductForm product={productModal.product} products={products} purchaseCount={productModal.product ? purchases.filter(row => row.productId === productModal.product!.id).length : 0} onDone={()=>setProductModal({open:false})} onCancel={()=>setProductModal({open:false})} pushToast={pushToast}/></Modal>
-    <Modal open={purchaseModal.open} title={purchaseModal.purchase?'ویرایش خرید':'ثبت خرید جدید'} onClose={()=>setPurchaseModal({open:false})}><PurchaseForm key={`${purchaseModal.purchase?.id??'new'}-${purchaseModal.productId??''}`} products={products} stores={stores} purchase={purchaseModal.purchase} initialProductId={purchaseModal.productId} currency={settings.currency} onDone={()=>setPurchaseModal({open:false})} onCancel={()=>setPurchaseModal({open:false})} pushToast={pushToast}/></Modal>
-    <Modal open={transactionModal.open} title={transactionModal.transaction?'ویرایش تراکنش':transactionModal.kind==='income'?'ثبت درآمد':'ثبت هزینه'} onClose={()=>setTransactionModal({open:false})}><TransactionForm key={`${transactionModal.transaction?.id??'new'}-${transactionModal.kind??''}`} transactions={transactions} transaction={transactionModal.transaction} initialKind={transactionModal.kind} currency={settings.currency} onDone={()=>setTransactionModal({open:false})} onCancel={()=>setTransactionModal({open:false})} pushToast={pushToast}/></Modal>
-    <Modal open={financialSnapshotModal} title={selectedFinancialSnapshot ? `ویرایش معیار ${formatMonth(financeMonth)}` : `ثبت معیار ${formatMonth(financeMonth)}`} onClose={()=>setFinancialSnapshotModal(false)}><FinancialSnapshotForm key={`${financeMonth}-${selectedFinancialSnapshot?.updatedAt ?? 'new'}`} month={financeMonth} snapshot={selectedFinancialSnapshot} currency={settings.currency} onDone={()=>setFinancialSnapshotModal(false)} onCancel={()=>setFinancialSnapshotModal(false)} pushToast={pushToast}/></Modal>
+    <Modal open={purchaseModal.open} title={purchaseModal.purchase?'ویرایش ثبت قیمت':'ثبت قیمت جدید'} onClose={()=>setPurchaseModal({open:false})}><PurchaseForm key={`${purchaseModal.purchase?.id??'new'}-${purchaseModal.productId??''}`} products={products} stores={stores} purchase={purchaseModal.purchase} initialProductId={purchaseModal.productId} currency={settings.currency} onDone={()=>setPurchaseModal({open:false})} onCancel={()=>setPurchaseModal({open:false})} pushToast={pushToast}/></Modal>
     <Modal open={!!renameTarget} title="ویرایش نام فروشگاه" onClose={()=>setRenameTarget(null)}><form className="form-grid" onSubmit={saveStoreRename}><label className="field field-span-2"><span>نام فروشگاه</span><input autoFocus value={renameValue} onChange={e=>setRenameValue(e.target.value)} required/></label><div className="form-actions field-span-2"><button type="submit" className="button primary"><Check size={18}/>ذخیره</button><button type="button" className="button ghost" onClick={()=>setRenameTarget(null)}>انصراف</button></div></form></Modal>
     <ConfirmDialog open={!!confirmState} title={confirmState?.title??''} body={confirmState?.body??''} confirmText={confirmState?.confirmText} danger={confirmState?.danger} onClose={()=>closeConfirm(false)} onConfirm={()=>closeConfirm(true)}/>
     <div className="toast-stack" role="status" aria-live="polite" aria-atomic="true">{toasts.map(t=><div className={`toast ${t.kind}`} key={t.id}>{t.kind==='ok'?<Check size={17}/>:t.kind==='error'?<X size={17}/>:<Info size={17}/>}<span>{t.text}</span></div>)}</div>
