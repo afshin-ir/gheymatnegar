@@ -19,6 +19,8 @@ export interface CompositePoint {
   index: number
   matched: number
   coveragePct: number
+  hasData: boolean
+  changePct: number | null
 }
 
 export interface CashflowPoint {
@@ -173,10 +175,17 @@ function historicalMonthlySpendWeight(
   return total / inclusiveMonthCount(firstMonth, previousMonth(currentMonth))
 }
 
-export function buildCompositeIndex(purchases: Purchase[]): CompositePoint[] {
+export function buildCompositeIndex(purchases: Purchase[], throughMonth?: string): CompositePoint[] {
   const { monthlyPrices, monthlySpend } = buildMonthlyData(purchases)
-  const months = [...monthlyPrices.keys()].sort()
-  if (!months.length) return []
+  const observedMonths = [...monthlyPrices.keys()].sort()
+  if (!observedMonths.length) return []
+
+  const lastObservedMonth = observedMonths.at(-1)!
+  const endMonth = throughMonth && throughMonth > lastObservedMonth ? throughMonth : lastObservedMonth
+  const months: string[] = []
+  for (let month = observedMonths[0]; month <= endMonth; month = shiftPersianMonthISO(month, 1)) {
+    months.push(month)
+  }
 
   const lastKnown = new Map<string, number>()
   const historicalSpendTotals = new Map<string, number>()
@@ -185,7 +194,8 @@ export function buildCompositeIndex(purchases: Purchase[]): CompositePoint[] {
   const result: CompositePoint[] = []
 
   for (const [monthIndex, month] of months.entries()) {
-    const current = monthlyPrices.get(month)!
+    const current = monthlyPrices.get(month) ?? new Map<string, number>()
+    const indexBeforeMonth = index
     const eligibleProductIds = [...lastKnown.keys()]
     const comparable: Array<{ ratio: number; weight: number }> = []
 
@@ -215,7 +225,9 @@ export function buildCompositeIndex(purchases: Purchase[]): CompositePoint[] {
       month,
       index,
       matched: monthIndex === 0 ? current.size : comparable.length,
-      coveragePct: monthIndex === 0 ? 100 : eligibleWeight ? Math.min(100, (freshWeight / eligibleWeight) * 100) : 0
+      coveragePct: monthIndex === 0 ? 100 : eligibleWeight ? Math.min(100, (freshWeight / eligibleWeight) * 100) : 0,
+      hasData: current.size > 0,
+      changePct: comparable.length ? ((index / indexBeforeMonth) - 1) * 100 : null
     })
 
     for (const [productId, currentPrice] of current) lastKnown.set(productId, currentPrice)
