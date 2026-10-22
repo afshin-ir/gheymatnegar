@@ -67,6 +67,7 @@ const purchases = [purchase('a', 'p1', '2026-01-02', 100), purchase('b', 'p1', '
 const index = analytics.buildCompositeIndex(purchases)
 assert.equal(index.length, 3)
 assert.deepEqual(index.map(point => point.hasData), [true, false, true])
+assert.equal(index[0].coveragePct, 0)
 assert.equal(index[1].changePct, null)
 assert.equal(Math.round(index[2].index), 120)
 assert.equal(Math.round(index[2].changePct), 20)
