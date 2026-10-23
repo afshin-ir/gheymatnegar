@@ -34,7 +34,7 @@ function pctTone(value: number | null) { return value == null || value === 0 ? '
 
 type TableSortState = { column: string; direction: 'asc'|'desc' }
 
-type AnnualBasketRow = { year: number; throughMonth: string; changePct: number }
+type AnnualBasketRow = { year: number; throughMonth: string; changePct: number; coveragePct: number; matched: number }
 
 type InflationTableRow = {
   key: string
@@ -273,15 +273,17 @@ export default function App() {
   )
   const annualBasketRows = [...observedIndexMonths.reduce((years, point) => {
     const year = persianDateParts(point.month)?.year
-    if (year != null && point.yearToDateChangePct != null) {
-      years.set(year, { year, throughMonth: point.month, changePct: point.yearToDateChangePct })
+    if (year != null && point.yearToDateChangePct != null && point.matched > 0) {
+      years.set(year, { year, throughMonth: point.month, changePct: point.yearToDateChangePct, coveragePct: point.coveragePct, matched: point.matched })
     }
     return years
   }, new Map<number, AnnualBasketRow>()).values()]
   const sortedAnnualBasketRows = sortTableRows('annualInflation', annualBasketRows, {
     year: row => row.year,
     change: row => row.changePct,
-    throughMonth: row => row.throughMonth
+    throughMonth: row => row.throughMonth,
+    coverage: row => row.coveragePct,
+    matched: row => row.matched
   })
   const productInflationRows: InflationTableRow[] = pointToPointRows.map(row => ({
     key: 'product:' + row.product.id,
@@ -473,26 +475,26 @@ export default function App() {
             <h2>تورم سالانهٔ سبد و تورم نقطه‌به‌نقطهٔ کالاها</h2>
             <p>تورم سبد شما در هر سال، در کنار مقایسهٔ هر کالا با همان ماه در سال قبل</p>
           </div>
-          {latestComposite ? <Badge tone={!latestComposite.hasData ? 'default' : latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{latestComposite.hasData ? faDecimal.format(latestComposite.coveragePct) + '٪ پوشش آخرین ماه' : 'بدون ثبت این ماه'}</Badge> : <Badge tone="info">داده‌ای نداریم</Badge>}
+          {latestComposite ? <Badge tone={!latestComposite.hasData ? 'default' : latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{latestComposite.hasData ? faDecimal.format(latestComposite.coveragePct) + '٪ پوشش ' + formatMonth(latestComposite.month) : 'برای ' + formatMonth(latestComposite.month) + ' خریدی ثبت نشده'}</Badge> : <Badge tone="info">داده‌ای نداریم</Badge>}
         </div>
         <div className="dashboard-inflation-grid">
           <section className="dashboard-inflation-column">
             <div className="dashboard-inflation-subhead">
-              <div><h3>تورم سالانهٔ سبد خرید شخصی</h3><p>از آغاز هر سال شمسی تا آخرین ماه دارای دادهٔ قابل‌مقایسه</p></div>
+              <div><h3>تورم سالانهٔ سبد خرید شخصی</h3><p>از ابتدای سال شمسی تا آخرین ماه دارای مقایسه</p></div>
             </div>
             {sortedAnnualBasketRows.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table dashboard-annual-inflation-table">
               <thead><tr>
-                <TableSortHeader table="annualInflation" column="year" label="سال شمسی" sort={tableSorts.annualInflation} onSort={toggleTableSort} initialDirection="desc"/>
-                <TableSortHeader table="annualInflation" column="change" label="تورم سبد" sort={tableSorts.annualInflation} onSort={toggleTableSort} initialDirection="desc"/>
-                <TableSortHeader table="annualInflation" column="throughMonth" label="آخرین ماه داده" sort={tableSorts.annualInflation} onSort={toggleTableSort}/>
+                <TableSortHeader table="annualInflation" column="year" label="سال / دوره" sort={tableSorts.annualInflation} onSort={toggleTableSort} initialDirection="desc"/>
+                <TableSortHeader table="annualInflation" column="change" label="تورم سالانه" sort={tableSorts.annualInflation} onSort={toggleTableSort} initialDirection="desc"/>
+                <TableSortHeader table="annualInflation" column="throughMonth" label="پوشش در آخرین ماه" sort={tableSorts.annualInflation} onSort={toggleTableSort}/>
               </tr></thead>
               <tbody>{sortedAnnualBasketRows.map(row => <tr key={row.year}>
-                <td><strong>{faNumber.format(row.year)}</strong></td>
-                <td><span className={'delta ' + pctTone(row.changePct)}>{formatPct(row.changePct)}</span></td>
-                <td>{formatMonth(row.throughMonth)}</td>
+                <td><strong>{faNumber.format(row.year)}</strong><small>تا {formatMonth(row.throughMonth)}</small></td>
+                <td><span className={'delta dashboard-annual-rate ' + pctTone(row.changePct)}>{formatPct(row.changePct)}</span></td>
+                <td><strong>{faDecimal.format(row.coveragePct)}٪</strong><small>{faNumber.format(row.matched)} کالای مقایسه‌شده</small></td>
               </tr>)}</tbody>
-            </table></div> : <EmptyState icon={<LineIcon size={24}/>} title="دادهٔ کافی برای تورم سالانه نداریم" body="برای محاسبهٔ تورم سال، باید قیمت‌های قابل‌مقایسه‌ای از ابتدای همان سال و ماه‌های بعد ثبت شده باشد."/>}
-            <div className="chart-note"><Info size={15}/><span>وزن کالاها بر پایهٔ سهم مخارج ثبت‌شدهٔ هر ماه است. سال جاری تا آخرین ماه دارای داده محاسبه می‌شود؛ برآورد شخصی است و آمار رسمی نیست.</span></div>
+            </table></div> : <EmptyState icon={<LineIcon size={24}/>} title="دادهٔ قابل‌مقایسه برای تورم سالانه نداریم" body="برای نمایش نرخ هر سال، به ثبت قیمت کالاها در دست‌کم دو ماه از همان سال نیاز است."/>}
+            <div className="chart-note"><Info size={15}/><span>وزن کالاها براساس سهم مخارج ثبت‌شدهٔ هر ماه است. پوشش نشان می‌دهد چه سهمی از مخارج آخرین ماهِ قابل‌مقایسه در محاسبه آمده؛ سال جاری تا همان ماه محاسبه می‌شود.</span></div>
           </section>
 
           <section className="dashboard-inflation-column">
