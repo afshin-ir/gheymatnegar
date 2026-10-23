@@ -23,6 +23,14 @@ export interface CompositePoint {
   changePct: number | null
 }
 
+export interface ProductPointToPointChange {
+  product: Product
+  month: string
+  currentPrice: number
+  previousPrice: number | null
+  changePct: number | null
+}
+
 export interface CashflowPoint {
   month: string
   purchaseExpense: number
@@ -239,6 +247,33 @@ export function buildCompositeIndex(purchases: Purchase[], throughMonth?: string
   }
 
   return result
+}
+
+
+export function buildPointToPointChanges(products: Product[], purchases: Purchase[], month?: string): ProductPointToPointChange[] {
+  if (!month) return []
+  const currentMonth = monthKey(month)
+  const previousYearMonth = shiftPersianMonthISO(currentMonth, -12)
+  const { monthlyPrices } = buildMonthlyData(purchases)
+  const currentPrices = monthlyPrices.get(currentMonth)
+  const previousPrices = monthlyPrices.get(previousYearMonth)
+  if (!currentPrices) return []
+
+  return products
+    .filter(product => !product.archived)
+    .flatMap(product => {
+      const currentPrice = currentPrices.get(product.id)
+      if (currentPrice == null) return []
+      const previousPrice = previousPrices?.get(product.id) ?? null
+      return [{
+        product,
+        month: currentMonth,
+        currentPrice,
+        previousPrice,
+        changePct: previousPrice == null ? null : safePct(previousPrice, currentPrice)
+      }]
+    })
+    .sort((a, b) => a.product.name.localeCompare(b.product.name, 'fa'))
 }
 
 export function categoryInflation(products: Product[], purchases: Purchase[]) {
