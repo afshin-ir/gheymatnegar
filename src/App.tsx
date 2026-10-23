@@ -83,7 +83,11 @@ export default function App() {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('همه')
   const [sortBy, setSortBy] = useState<'recent'|'change'|'name'>('recent')
-  const [tableSorts, setTableSorts] = useState<Record<string, TableSortState>>({ comparison: { column: 'change', direction: 'desc' }, inflation: { column: 'month', direction: 'desc' } })
+  const [tableSorts, setTableSorts] = useState<Record<string, TableSortState>>({
+    comparison: { column: 'change', direction: 'desc' },
+    basketInflation: { column: 'month', direction: 'desc' },
+    productInflation: { column: 'pointToPoint', direction: 'desc' }
+  })
   const [comparisonExpanded, setComparisonExpanded] = useState(false)
   const toggleTableSort = (table: string, column: string, initialDirection: 'asc'|'desc' = 'asc') => {
     setTableSorts(current => {
@@ -270,46 +274,43 @@ export default function App() {
       .filter(row => row.previousPrice != null && row.changePct != null),
     [activeProducts, purchases, pointToPointMonth]
   )
-  const combinedInflationRows: InflationTableRow[] = observedIndexMonths.slice().reverse().flatMap(point => {
-    const rows: InflationTableRow[] = [{
-      key: 'basket:' + point.month,
-      kind: 'basket',
-      month: point.month,
-      name: 'سبد قیمت‌ها',
-      product: null,
-      previousPrice: null,
-      currentPrice: null,
-      monthlyChangePct: point.changePct,
-      yearToDateChangePct: point.yearToDateChangePct,
-      pointToPointChangePct: null,
-      matched: point.matched
-    }]
-    if (point.month === pointToPointMonth) {
-      rows.push(...pointToPointRows.map(row => ({
-        key: 'product:' + row.product.id,
-        kind: 'product' as const,
-        month: row.month,
-        name: row.product.name,
-        product: row.product,
-        previousPrice: row.previousPrice,
-        currentPrice: row.currentPrice,
-        monthlyChangePct: null,
-        yearToDateChangePct: null,
-        pointToPointChangePct: row.changePct,
-        matched: null
-      })))
-    }
-    return rows
-  })
-  const sortedInflationRows = sortTableRows('inflation', combinedInflationRows, {
+  const basketInflationRows: InflationTableRow[] = observedIndexMonths.slice().reverse().map(point => ({
+    key: 'basket:' + point.month,
+    kind: 'basket',
+    month: point.month,
+    name: 'سبد خرید شخصی',
+    product: null,
+    previousPrice: null,
+    currentPrice: null,
+    monthlyChangePct: point.changePct,
+    yearToDateChangePct: point.yearToDateChangePct,
+    pointToPointChangePct: null,
+    matched: point.matched
+  }))
+  const sortedBasketInflationRows = sortTableRows('basketInflation', basketInflationRows, {
     month: row => row.month,
+    monthly: row => row.monthlyChangePct,
+    yearToDate: row => row.yearToDateChangePct,
+    matched: row => row.matched
+  })
+  const productInflationRows: InflationTableRow[] = pointToPointRows.map(row => ({
+    key: 'product:' + row.product.id,
+    kind: 'product',
+    month: row.month,
+    name: row.product.name,
+    product: row.product,
+    previousPrice: row.previousPrice,
+    currentPrice: row.currentPrice,
+    monthlyChangePct: null,
+    yearToDateChangePct: null,
+    pointToPointChangePct: row.changePct,
+    matched: null
+  }))
+  const sortedProductInflationRows = sortTableRows('productInflation', productInflationRows, {
     name: row => row.name,
     previous: row => row.previousPrice,
     current: row => row.currentPrice,
-    monthly: row => row.monthlyChangePct,
-    yearToDate: row => row.yearToDateChangePct,
-    pointToPoint: row => row.pointToPointChangePct,
-    matched: row => row.matched
+    pointToPoint: row => row.pointToPointChangePct
   })
   const money = (value: number, compact = settings.compactNumbers) => formatMoney(value, settings.currency, compact)
   const moneyValue = (value: number, compact = settings.compactNumbers) => {
@@ -481,36 +482,59 @@ export default function App() {
       </section> : null}
 
       
-      <section className="panel dashboard-insight-card">
-        <div className="panel-head">
-          <div>
-            <h2>تورم و تغییر قیمت</h2>
-            <p>تورم سبد شما در هر ماه و از آغاز سال، همراه با تورم نقطه‌به‌نقطهٔ هر کالا</p>
+      <div className="dashboard-inflation-grid">
+        <section className="panel dashboard-inflation-card">
+          <div className="panel-head">
+            <div>
+              <h2>تورم سبد خرید شخصی</h2>
+              <p>تغییر ماهانه و تجمعی از آغاز سال شمسی، با وزن مخارج همان ماه</p>
+            </div>
+            {latestComposite ? <Badge tone={!latestComposite.hasData ? 'default' : latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{latestComposite.hasData ? faDecimal.format(latestComposite.coveragePct) + '٪ پوشش آخرین ماه' : 'بدون ثبت این ماه'}</Badge> : <Badge tone="info">داده‌ای نداریم</Badge>}
           </div>
-          {latestComposite ? <Badge tone={!latestComposite.hasData ? 'default' : latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{latestComposite.hasData ? faDecimal.format(latestComposite.coveragePct) + '٪ پوشش آخرین ماه' : 'بدون ثبت این ماه'}</Badge> : <Badge tone="info">داده‌ای نداریم</Badge>}
-        </div>
-        {latestComposite && !latestComposite.hasData ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمتی ثبت نشده؛ برای این ماه نرخ تورم محاسبه نمی‌شود و تغییر صفر تلقی نمی‌شود.</span></div> : null}
-        {latestComposite?.hasData && latestComposite.matched === 0 ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمت قابل‌مقایسه‌ای با ماه قبل ثبت نشده؛ تورم ماهانه برای این ماه محاسبه نشده است.</span></div> : null}
-        {sortedInflationRows.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table dashboard-inflation-table">
-          <thead><tr>
-            <TableSortHeader table="inflation" column="month" label="ماه / کالا" sort={tableSorts.inflation} onSort={toggleTableSort} initialDirection="desc"/>
-            <TableSortHeader table="inflation" column="previous" label={`قیمت سال قبل (${settings.currency})`} sort={tableSorts.inflation} onSort={toggleTableSort}/>
-            <TableSortHeader table="inflation" column="current" label={`قیمت این ماه (${settings.currency})`} sort={tableSorts.inflation} onSort={toggleTableSort}/>
-            <TableSortHeader table="inflation" column="monthly" label="تورم ماهانهٔ سبد" sort={tableSorts.inflation} onSort={toggleTableSort}/>
-            <TableSortHeader table="inflation" column="yearToDate" label="تورم سبد از آغاز سال" sort={tableSorts.inflation} onSort={toggleTableSort}/>
-            <TableSortHeader table="inflation" column="pointToPoint" label="تورم نقطه‌به‌نقطهٔ کالا" sort={tableSorts.inflation} onSort={toggleTableSort}/>
-          </tr></thead>
-          <tbody>{sortedInflationRows.map(row => <tr key={row.key}>
-            <td><strong>{row.kind === 'basket' ? 'سبد خرید شخصی' : row.name}</strong><small>{row.kind === 'basket' ? `${formatMonth(row.month)} · ${faNumber.format(row.matched ?? 0)} کالای مقایسه‌شده` : `${formatMonth(row.month)} · ${row.product?.category ?? ''} · ${row.product?.unit ?? ''}`}</small></td>
-            <td>{row.previousPrice == null ? <span className="table-muted">—</span> : moneyValue(row.previousPrice)}</td>
-            <td>{row.currentPrice == null ? <span className="table-muted">—</span> : <strong className="table-primary-number">{moneyValue(row.currentPrice)}</strong>}</td>
-            <td>{row.monthlyChangePct == null ? <span className="table-muted">{row.kind === 'product' ? '—' : 'بدون مقایسه'}</span> : <span className={'delta ' + pctTone(row.monthlyChangePct)}>{formatPct(row.monthlyChangePct)}</span>}</td>
-            <td>{row.yearToDateChangePct == null ? <span className="table-muted">{row.kind === 'product' ? '—' : 'دادهٔ کافی نیست'}</span> : <span className={'delta ' + pctTone(row.yearToDateChangePct)}>{formatPct(row.yearToDateChangePct)}</span>}</td>
-            <td>{row.pointToPointChangePct == null ? <span className="table-muted">{row.kind === 'basket' ? '—' : 'دادهٔ هم‌ماه پارسال ندارد'}</span> : <span className={'delta ' + pctTone(row.pointToPointChangePct)}>{formatPct(row.pointToPointChangePct)}</span>}</td>
-          </tr>)}</tbody>
-        </table></div> : <EmptyState icon={<LineIcon size={24}/>} title="هنوز داده‌ای برای مقایسه نداریم" body="با ثبت قیمت کالاها در چند ماه، نرخ‌های سبد و مقایسهٔ نقطه‌به‌نقطه نمایش داده می‌شوند."/>}
-        <div className="chart-note"><Info size={15}/><span>تورم سبد با وزن سهم هر کالا از مخارج ثبت‌شدهٔ همان ماه محاسبه می‌شود و نرخ از آغاز سال شمسی از ترکیب ماهانه‌ها به دست می‌آید. نقطه‌به‌نقطه در ردیف هر کالا، قیمت آن را با همان ماه در سال قبل می‌سنجد؛ این برآورد بر پایهٔ ثبت‌های شماست، نه آمار رسمی.</span></div>
-      </section>
+          {latestComposite && !latestComposite.hasData ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمتی ثبت نشده؛ نرخ تورم محاسبه نمی‌شود.</span></div> : null}
+          {latestComposite?.hasData && latestComposite.matched === 0 ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} کالای قابل‌مقایسه با ثبت قبلی وجود ندارد.</span></div> : null}
+          {sortedBasketInflationRows.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table dashboard-basket-table">
+            <thead><tr>
+              <TableSortHeader table="basketInflation" column="month" label="ماه" sort={tableSorts.basketInflation} onSort={toggleTableSort} initialDirection="desc"/>
+              <TableSortHeader table="basketInflation" column="monthly" label="تورم ماهانه" sort={tableSorts.basketInflation} onSort={toggleTableSort}/>
+              <TableSortHeader table="basketInflation" column="yearToDate" label="از آغاز سال" sort={tableSorts.basketInflation} onSort={toggleTableSort}/>
+              <TableSortHeader table="basketInflation" column="matched" label="کالاهای مقایسه‌شده" sort={tableSorts.basketInflation} onSort={toggleTableSort}/>
+            </tr></thead>
+            <tbody>{sortedBasketInflationRows.map(row => <tr key={row.key}>
+              <td><strong>{formatMonth(row.month)}</strong></td>
+              <td>{row.monthlyChangePct == null ? <span className="table-muted">بدون مقایسه</span> : <span className={'delta ' + pctTone(row.monthlyChangePct)}>{formatPct(row.monthlyChangePct)}</span>}</td>
+              <td>{row.yearToDateChangePct == null ? <span className="table-muted">دادهٔ کافی نیست</span> : <span className={'delta ' + pctTone(row.yearToDateChangePct)}>{formatPct(row.yearToDateChangePct)}</span>}</td>
+              <td>{faNumber.format(row.matched ?? 0)}</td>
+            </tr>)}</tbody>
+          </table></div> : <EmptyState icon={<LineIcon size={24}/>} title="هنوز داده‌ای برای سبد نداریم" body="با ثبت خریدها در چند ماه، تورم ماهانه و تجمعی سبد نمایش داده می‌شود."/>}
+          <div className="chart-note"><Info size={15}/><span>وزن هر کالا بر پایهٔ سهم آن از مخارج ثبت‌شدهٔ همان ماه است. نرخ تجمعی از آغاز سال شمسی از ترکیب تغییرهای ماهانه به دست می‌آید؛ این برآورد شخصی است، نه آمار رسمی.</span></div>
+        </section>
+
+        <section className="panel dashboard-inflation-card">
+          <div className="panel-head">
+            <div>
+              <h2>تورم نقطه‌به‌نقطهٔ کالاها</h2>
+              <p>{pointToPointMonth ? `قیمت این ماه در مقایسه با همان ماه سال قبل · ${formatMonth(pointToPointMonth)}` : 'مقایسهٔ قیمت هر کالا با همان ماه در سال قبل'}</p>
+            </div>
+            <Badge tone={pointToPointRows.length ? 'info' : 'default'}>{faNumber.format(pointToPointRows.length)} کالا</Badge>
+          </div>
+          {sortedProductInflationRows.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table dashboard-product-inflation-table">
+            <thead><tr>
+              <TableSortHeader table="productInflation" column="name" label="کالا" sort={tableSorts.productInflation} onSort={toggleTableSort}/>
+              <TableSortHeader table="productInflation" column="previous" label={`قیمت پارسال (${settings.currency})`} sort={tableSorts.productInflation} onSort={toggleTableSort}/>
+              <TableSortHeader table="productInflation" column="current" label={`قیمت این ماه (${settings.currency})`} sort={tableSorts.productInflation} onSort={toggleTableSort}/>
+              <TableSortHeader table="productInflation" column="pointToPoint" label="تورم نقطه‌به‌نقطه" sort={tableSorts.productInflation} onSort={toggleTableSort} initialDirection="desc"/>
+            </tr></thead>
+            <tbody>{sortedProductInflationRows.map(row => <tr key={row.key}>
+              <td><strong>{row.name}</strong><small>{row.product?.category ?? ''} · {row.product?.unit ?? ''}</small></td>
+              <td>{row.previousPrice == null ? <span className="table-muted">—</span> : moneyValue(row.previousPrice)}</td>
+              <td>{row.currentPrice == null ? <span className="table-muted">—</span> : <strong className="table-primary-number">{moneyValue(row.currentPrice)}</strong>}</td>
+              <td>{row.pointToPointChangePct == null ? <span className="table-muted">دادهٔ هم‌ماه پارسال ندارد</span> : <span className={'delta ' + pctTone(row.pointToPointChangePct)}>{formatPct(row.pointToPointChangePct)}</span>}</td>
+            </tr>)}</tbody>
+          </table></div> : <EmptyState icon={<TrendingUp size={24}/>} title="دادهٔ هم‌ماه پارسال نداریم" body="با ثبت قیمت کالاها در همین ماه طی سال گذشته و امسال، مقایسهٔ نقطه‌به‌نقطه نمایش داده می‌شود."/>}
+          <div className="chart-note"><Info size={15}/><span>تورم نقطه‌به‌نقطهٔ هر کالا از مقایسهٔ قیمت آن در یک ماه با همان ماه در سال قبل محاسبه می‌شود.</span></div>
+        </section>
+      </div>
 
       <section className="panel">
         <div className="panel-head"><div><h2>مقایسهٔ قیمت کالاها</h2><p>دامنهٔ کمینه تا بیشینه و درصد تغییر در بازهٔ انتخاب‌شده</p></div><button className="text-button" onClick={() => setPage('products')}>فهرست کالاها <ChevronLeft size={16}/></button></div>
