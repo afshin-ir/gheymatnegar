@@ -43,7 +43,8 @@ type InflationTableRow = {
   previousPrice: number | null
   currentPrice: number | null
   monthlyChangePct: number | null
-  annualChangePct: number | null
+  yearToDateChangePct: number | null
+  pointToPointChangePct: number | null
   matched: number | null
 }
 function TableSortHeader({ label, table, column, sort, onSort, initialDirection = 'asc' }: {
@@ -279,7 +280,8 @@ export default function App() {
       previousPrice: null,
       currentPrice: null,
       monthlyChangePct: point.changePct,
-      annualChangePct: point.yearOverYearChangePct,
+      yearToDateChangePct: point.yearToDateChangePct,
+      pointToPointChangePct: null,
       matched: point.yearOverYearMatched
     }]
     if (point.month === pointToPointMonth) {
@@ -292,7 +294,8 @@ export default function App() {
         previousPrice: row.previousPrice,
         currentPrice: row.currentPrice,
         monthlyChangePct: null,
-        annualChangePct: row.changePct,
+        yearToDateChangePct: null,
+        pointToPointChangePct: row.changePct,
         matched: null
       })))
     }
@@ -304,7 +307,8 @@ export default function App() {
     previous: row => row.previousPrice,
     current: row => row.currentPrice,
     monthly: row => row.monthlyChangePct,
-    annual: row => row.annualChangePct,
+    yearToDate: row => row.yearToDateChangePct,
+    pointToPoint: row => row.pointToPointChangePct,
     matched: row => row.matched
   })
   const money = (value: number, compact = settings.compactNumbers) => formatMoney(value, settings.currency, compact)
@@ -481,7 +485,7 @@ export default function App() {
         <div className="panel-head">
           <div>
             <h2>تورم و تغییر قیمت</h2>
-            <p>روند تورم سبد شخصی و مقایسهٔ نقطه‌به‌نقطهٔ کالاها در یک جدول</p>
+            <p>تورم سبد شما در هر ماه و از آغاز سال، همراه با تورم نقطه‌به‌نقطهٔ هر کالا</p>
           </div>
           {latestComposite ? <Badge tone={!latestComposite.hasData ? 'default' : latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{latestComposite.hasData ? faDecimal.format(latestComposite.coveragePct) + '٪ پوشش آخرین ماه' : 'بدون ثبت این ماه'}</Badge> : <Badge tone="info">داده‌ای نداریم</Badge>}
         </div>
@@ -493,19 +497,19 @@ export default function App() {
             <TableSortHeader table="inflation" column="previous" label={`قیمت سال قبل (${settings.currency})`} sort={tableSorts.inflation} onSort={toggleTableSort}/>
             <TableSortHeader table="inflation" column="current" label={`قیمت این ماه (${settings.currency})`} sort={tableSorts.inflation} onSort={toggleTableSort}/>
             <TableSortHeader table="inflation" column="monthly" label="تورم ماهانهٔ سبد" sort={tableSorts.inflation} onSort={toggleTableSort}/>
-            <TableSortHeader table="inflation" column="annual" label="تورم نقطه‌به‌نقطه" sort={tableSorts.inflation} onSort={toggleTableSort}/>
-            <TableSortHeader table="inflation" column="matched" label="کالاهای مشترک" sort={tableSorts.inflation} onSort={toggleTableSort}/>
+            <TableSortHeader table="inflation" column="yearToDate" label="تورم سبد از آغاز سال" sort={tableSorts.inflation} onSort={toggleTableSort}/>
+            <TableSortHeader table="inflation" column="pointToPoint" label="تورم نقطه‌به‌نقطهٔ کالا" sort={tableSorts.inflation} onSort={toggleTableSort}/>
           </tr></thead>
           <tbody>{sortedInflationRows.map(row => <tr key={row.key}>
-            <td><strong>{row.kind === 'basket' ? 'سبد قیمت‌ها' : row.name}</strong><small>{row.kind === 'basket' ? formatMonth(row.month) : `${formatMonth(row.month)} · ${row.product?.category ?? ''} · ${row.product?.unit ?? ''}`}</small></td>
+            <td><strong>{row.kind === 'basket' ? 'سبد خرید شخصی' : row.name}</strong><small>{row.kind === 'basket' ? `${formatMonth(row.month)} · ${faNumber.format(row.matched ?? 0)} کالای مقایسه‌شده` : `${formatMonth(row.month)} · ${row.product?.category ?? ''} · ${row.product?.unit ?? ''}`}</small></td>
             <td>{row.previousPrice == null ? <span className="table-muted">—</span> : moneyValue(row.previousPrice)}</td>
             <td>{row.currentPrice == null ? <span className="table-muted">—</span> : <strong className="table-primary-number">{moneyValue(row.currentPrice)}</strong>}</td>
             <td>{row.monthlyChangePct == null ? <span className="table-muted">{row.kind === 'product' ? '—' : 'بدون مقایسه'}</span> : <span className={'delta ' + pctTone(row.monthlyChangePct)}>{formatPct(row.monthlyChangePct)}</span>}</td>
-            <td>{row.annualChangePct == null ? <span className="table-muted">دادهٔ هم‌ماه ندارد</span> : <span className={'delta ' + pctTone(row.annualChangePct)}>{formatPct(row.annualChangePct)}</span>}</td>
-            <td>{row.matched == null ? <span className="table-muted">—</span> : faNumber.format(row.matched)}</td>
+            <td>{row.yearToDateChangePct == null ? <span className="table-muted">{row.kind === 'product' ? '—' : 'دادهٔ کافی نیست'}</span> : <span className={'delta ' + pctTone(row.yearToDateChangePct)}>{formatPct(row.yearToDateChangePct)}</span>}</td>
+            <td>{row.pointToPointChangePct == null ? <span className="table-muted">{row.kind === 'basket' ? '—' : 'دادهٔ هم‌ماه پارسال ندارد'}</span> : <span className={'delta ' + pctTone(row.pointToPointChangePct)}>{formatPct(row.pointToPointChangePct)}</span>}</td>
           </tr>)}</tbody>
         </table></div> : <EmptyState icon={<LineIcon size={24}/>} title="هنوز داده‌ای برای مقایسه نداریم" body="با ثبت قیمت کالاها در چند ماه، نرخ‌های سبد و مقایسهٔ نقطه‌به‌نقطه نمایش داده می‌شوند."/>}
-        <div className="chart-note"><Info size={15}/><span>ردیف‌های «سبد قیمت‌ها» تغییر ماهانه و نقطه‌به‌نقطهٔ سبد را نشان می‌دهند؛ ردیف کالاها قیمت دو ماه هم‌نام و تغییر نقطه‌به‌نقطه را نشان می‌دهند. این برآورد بر پایهٔ داده‌های ثبت‌شدهٔ شماست، نه آمار رسمی.</span></div>
+        <div className="chart-note"><Info size={15}/><span>تورم سبد با وزن سهم هر کالا از مخارج ثبت‌شدهٔ همان ماه محاسبه می‌شود و نرخ از آغاز سال شمسی از ترکیب ماهانه‌ها به دست می‌آید. نقطه‌به‌نقطه در ردیف هر کالا، قیمت آن را با همان ماه در سال قبل می‌سنجد؛ این برآورد بر پایهٔ ثبت‌های شماست، نه آمار رسمی.</span></div>
       </section>
 
       <section className="panel">
