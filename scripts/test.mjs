@@ -79,6 +79,22 @@ assert.equal(extendedIndex.at(-1).changePct, null)
 assert.equal(extendedIndex.at(-1).index, extendedIndex.at(-2).index)
 
 
+const pointToPointProducts = [product('y1', 'قبض گاز'), product('y2', 'قبض آب')]
+const pointToPoint = analytics.buildPointToPointChanges(pointToPointProducts, [
+  purchase('y1-old', 'y1', '2025-08-25', 100),
+  purchase('y1-current', 'y1', '2026-08-25', 130),
+  purchase('y2-current', 'y2', '2026-08-25', 75),
+], '2026-08-23')
+assert.equal(pointToPoint.length, 2)
+assert.equal(pointToPoint[0].month, '2026-08-23')
+assert.equal(pointToPoint.find(row => row.product.id === 'y1').previousPrice, 100)
+assert.equal(pointToPoint.find(row => row.product.id === 'y1').changePct, 30)
+assert.equal(pointToPoint.find(row => row.product.id === 'y2').previousPrice, null)
+assert.equal(pointToPoint.find(row => row.product.id === 'y2').changePct, null)
+assert.deepEqual(analytics.buildPointToPointChanges(pointToPointProducts, [], undefined), [])
+
+
+
 // Automatic basket weighting: a higher historical monthly spend should have
 // more influence than a low-spend item, without any manual product weight.
 const weightedPurchases = [
