@@ -196,7 +196,7 @@ input, select, textarea { color: var(--text); background: var(--surface); }
 .compact-insight-table th:first-child { width: 48%; }
 .compact-insight-table th:nth-child(2) { width: 30%; }
 .compact-insight-table th:nth-child(3) { width: 22%; }
-.dashboard-grid { align-items: start; }
+.dashboard-grid { align-items: stretch; }
 .panel-wide { min-height: 0; }
 .chart-lg { height: 310px; direction: ltr; }
 .chart-md { height: 300px; direction: ltr; }
