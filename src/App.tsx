@@ -38,16 +38,11 @@ type AnnualBasketRow = { year: number; throughMonth: string; changePct: number }
 
 type InflationTableRow = {
   key: string
-  kind: 'basket'|'product'
-  month: string
   name: string
-  product: Product | null
+  product: Product
   previousPrice: number | null
   currentPrice: number | null
-  monthlyChangePct: number | null
-  yearToDateChangePct: number | null
   pointToPointChangePct: number | null
-  matched: number | null
 }
 function TableSortHeader({ label, table, column, sort, onSort, initialDirection = 'asc' }: {
   label: string; table: string; column: string; sort?: TableSortState;
@@ -290,16 +285,11 @@ export default function App() {
   })
   const productInflationRows: InflationTableRow[] = pointToPointRows.map(row => ({
     key: 'product:' + row.product.id,
-    kind: 'product',
-    month: row.month,
     name: row.product.name,
     product: row.product,
     previousPrice: row.previousPrice,
     currentPrice: row.currentPrice,
-    monthlyChangePct: null,
-    yearToDateChangePct: null,
-    pointToPointChangePct: row.changePct,
-    matched: null
+    pointToPointChangePct: row.changePct
   }))
   const sortedProductInflationRows = sortTableRows('productInflation', productInflationRows, {
     name: row => row.name,
