@@ -529,13 +529,13 @@ export default function App() {
         {comparisonStats.length ? <><div className={`table-wrap comparison-table-wrap ${comparisonExpanded ? 'expanded' : ''}`}><table className="comparison-table"><thead><tr>
           <TableSortHeader table="comparison" column="name" label="کالا" sort={tableSorts.comparison} onSort={toggleTableSort}/>
           <TableSortHeader table="comparison" column="range" label={`کمینه تا بیشینه (${settings.currency})`} sort={tableSorts.comparison} onSort={toggleTableSort}/>
-          <TableSortHeader table="comparison" column="change" label="تغییر بازه" sort={tableSorts.comparison} onSort={toggleTableSort} initialDirection="desc"/>
+          <TableSortHeader table="comparison" column="change" label="درصد افزایش/کاهش" sort={tableSorts.comparison} onSort={toggleTableSort} initialDirection="desc"/>
           <TableSortHeader table="comparison" column="count" label="تعداد ثبت" sort={tableSorts.comparison} onSort={toggleTableSort}/>
           <TableSortHeader table="comparison" column="recent" label="آخرین ثبت" sort={tableSorts.comparison} onSort={toggleTableSort} initialDirection="desc"/>
         </tr></thead><tbody>{visibleComparisonStats.map(stat => <tr key={stat.product.id} className="clickable" tabIndex={0} role="button" onClick={() => { selectProduct(stat.product.id); setPage('products') }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectProduct(stat.product.id); setPage('products') } }}>
           <td data-label="کالا"><strong>{stat.product.name}</strong><small>{stat.product.category} · {stat.product.unit}</small></td>
           <td data-label={`کمینه تا بیشینه (${settings.currency})`}>{stat.min == null || stat.max == null ? '—' : <>{moneyValue(stat.min)} تا {moneyValue(stat.max)}</>}</td>
-          <td data-label="تغییر بازه"><span className={`delta ${pctTone(stat.changePct)}`}>{stat.changePct == null || stat.changePct === 0 ? <Minus size={15}/> : stat.changePct > 0 ? <TrendingUp size={15}/> : <TrendingDown size={15}/>} {formatPct(stat.changePct)}</span></td>
+          <td data-label="درصد افزایش/کاهش"><span className={`delta ${pctTone(stat.changePct)}`}>{stat.changePct == null || stat.changePct === 0 ? <Minus size={15}/> : stat.changePct > 0 ? <TrendingUp size={15}/> : <TrendingDown size={15}/>} {formatPct(stat.changePct)}</span></td>
           <td data-label="تعداد ثبت">{faNumber.format(stat.count)} ثبت</td>
           <td data-label="آخرین ثبت">{stat.lastDate ? formatDate(stat.lastDate) : '—'}</td>
         </tr>)}</tbody></table></div>{comparisonStats.length > 10 ? <div className="table-more">
