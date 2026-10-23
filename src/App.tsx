@@ -413,7 +413,7 @@ export default function App() {
           </div>
           {latestComposite && !latestComposite.hasData ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمتی ثبت نشده؛ شاخص از آخرین مقدار موجود ادامه پیدا می‌کند و این ماه تورم صفر محسوب نمی‌شود.</span></div> : null}
           {latestComposite?.hasData && latestComposite.matched === 0 ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمت قابل‌مقایسه‌ای ثبت نشده؛ برای محاسبهٔ تغییر، قیمت کالاهای دارای سابقه را دوباره ثبت کنید.</span></div> : null}
-          {observedIndexMonths.length ? <div className="table-wrap"><table className="insight-table dashboard-index-table">
+          {observedIndexMonths.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table dashboard-index-table">
             <thead><tr><th>ماه</th><th>شاخص سبد</th><th>تغییر شاخص</th></tr></thead>
             <tbody>{observedIndexMonths.map((point, index) => <tr key={point.month}>
               <td>{formatMonth(point.month)}</td>
@@ -426,7 +426,7 @@ export default function App() {
 
         <section className="panel">
           <div className="panel-head"><div><h2>بیشترین افزایش</h2><p>از اولین تا آخرین ثبت هر کالا</p></div></div>
-          {topChanges.length ? <div className="table-wrap"><table className="insight-table dashboard-increase-table">
+          {topChanges.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table dashboard-increase-table">
             <thead><tr><th>رتبه</th><th>کالا</th><th>افزایش</th></tr></thead>
             <tbody>{topChanges.map((item, index) => <tr key={item.name}>
               <td><span className="table-rank">{faNumber.format(index + 1)}</span></td>
@@ -520,7 +520,7 @@ export default function App() {
     <div className="analytics-grid analysis-table-grid">
       <section className="panel analysis-table-wide">
         <div className="panel-head"><div><h2>روند قیمت {selectedProduct?.name ?? ''}</h2><p>قیمت واحد مؤثر و تغییر آن نسبت به ثبت پیشین در بازهٔ انتخاب‌شده</p></div></div>
-        {analyticsHistory.length ? <div className="table-wrap"><table className="insight-table price-history-table">
+        {analyticsHistory.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table price-history-table">
           <thead><tr><th>تاریخ ثبت</th><th>قیمت هر واحد</th><th>تغییر با ثبت پیشین</th><th>فروشگاه</th></tr></thead>
           <tbody>{analyticsHistory.slice().reverse().map(({ purchase, changePct }) => <tr key={purchase.id}>
             <td>{formatDate(purchase.date)}</td>
@@ -533,7 +533,7 @@ export default function App() {
 
       <section className="panel">
         <div className="panel-head"><div><h2>تورم دسته‌ها</h2><p>تغییر مرکب کالاهای هر دسته بر اساس سهم هزینه در بازهٔ انتخابی</p></div></div>
-        {catInflation.length ? <div className="table-wrap"><table className="insight-table compact-insight-table">
+        {catInflation.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table compact-insight-table">
           <thead><tr><th>دسته‌بندی</th><th>تغییر قیمت</th><th>تعداد کالا</th></tr></thead>
           <tbody>{catInflation.map(row => <tr key={row.category}>
             <td>{row.category}</td><td><span className={'delta ' + pctTone(row.change)}>{formatPct(row.change)}</span></td><td>{faNumber.format(row.products)}</td>
@@ -543,7 +543,7 @@ export default function App() {
 
       <section className="panel">
         <div className="panel-head"><div><h2>نوسان قیمت کالاها</h2><p>شدت متوسط تغییر میان ثبت‌های متوالی؛ عدد بیشتر یعنی قیمت ناپایدارتر</p></div></div>
-        {volatility.length ? <div className="table-wrap"><table className="insight-table compact-insight-table">
+        {volatility.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table compact-insight-table">
           <thead><tr><th>کالا</th><th>نوسان</th><th>تعداد ثبت</th></tr></thead>
           <tbody>{volatility.map(row => <tr key={row.name}>
             <td>{row.name}</td><td><strong className="table-primary-number">{formatPct(row.volatility)}</strong></td><td>{faNumber.format(row.count)}</td>
@@ -553,7 +553,7 @@ export default function App() {
 
       <section className="panel analysis-table-wide">
         <div className="panel-head"><div><h2>مقایسهٔ فروشگاه‌ها</h2><p>میانگین وزنی قیمت {selectedProduct?.name ?? 'کالای انتخابی'} در هر فروشگاه</p></div>{bestStore ? <Badge tone="success">کمترین میانگین: {bestStore.store}</Badge> : null}</div>
-        {storeData.length ? <div className="table-wrap"><table className="insight-table store-comparison-table">
+        {storeData.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table store-comparison-table">
           <thead><tr><th>فروشگاه</th><th>میانگین وزنی</th><th>آخرین قیمت</th><th>کمینه تا بیشینه</th><th>تعداد ثبت</th></tr></thead>
           <tbody>{storeData.map(row => <tr key={row.store}>
             <td>{row.store}</td><td><strong className="table-primary-number">{money(row.avg)}</strong></td><td>{money(row.latest)}</td><td>{money(row.min)} – {money(row.max)}</td><td>{faNumber.format(row.count)}</td>
