@@ -282,7 +282,7 @@ export default function App() {
       monthlyChangePct: point.changePct,
       yearToDateChangePct: point.yearToDateChangePct,
       pointToPointChangePct: null,
-      matched: point.yearOverYearMatched
+      matched: point.matched
     }]
     if (point.month === pointToPointMonth) {
       rows.push(...pointToPointRows.map(row => ({
