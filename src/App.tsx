@@ -432,11 +432,18 @@ export default function App() {
       </section> : null}
 
       
-      <div className={`dashboard-insight-pair ${pointToPointRows.length ? '' : 'is-single'}`}>
-      {pointToPointRows.length ? <section className="panel point-to-point-panel">
+      <section className="panel dashboard-insight-card">
+        <div className="panel-head dashboard-insight-main-head">
+          <div>
+            <h2>تورم و تغییر قیمت</h2>
+            <p>تغییر قیمت کالاها و برآورد تورم سبد ثبت‌شدهٔ شما</p>
+          </div>
+        </div>
+        <div className={`dashboard-insight-pair ${pointToPointRows.length ? '' : 'is-single'}`}>
+      {pointToPointRows.length ? <section className="dashboard-insight-section point-to-point-panel">
         <div className="panel-head">
           <div>
-            <h2>تورم نقطه‌به‌نقطهٔ کالاها</h2>
+            <h2>تورم کالاها</h2>
             <p>قیمت هر کالا در آخرین ماهِ بازه با همان ماه در سال گذشته مقایسه می‌شود</p>
           </div>
           <Badge tone="info">{formatMonth(pointToPointMonth!)} در برابر {formatMonth(shiftPersianMonthISO(pointToPointMonth!, -12))}</Badge>
@@ -458,10 +465,10 @@ export default function App() {
         <div className="chart-note"><Info size={15}/><span>فقط کالاهایی نمایش داده می‌شوند که برای هر دو ماهِ هم‌نام قیمت ثبت شده باشد. درصد تغییر بر اساس میانهٔ قیمت‌های ثبت‌شده در این دو ماه محاسبه می‌شود.</span></div>
       </section> : null}
 
-      <section className="panel">
-        <div className="panel-head">
+      <section className="dashboard-insight-section">
+        <div className="panel-head dashboard-insight-section-head">
           <div>
-            <h2>تورم سبد قیمت‌های ثبت‌شده</h2>
+            <h2>تورم سبد</h2>
             <p>تغییر ماهانه و نقطه‌به‌نقطهٔ قیمت کالاهای ثبت‌شده در سبد شخصی</p>
           </div>
           {latestComposite ? <Badge tone={!latestComposite.hasData ? 'default' : latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{latestComposite.hasData ? faDecimal.format(latestComposite.coveragePct) + '٪ پوشش آخرین ماه' : 'بدون ثبت این ماه'}</Badge> : <Badge tone="info">داده‌ای نداریم</Badge>}
@@ -489,7 +496,8 @@ export default function App() {
         </table></div> : <EmptyState icon={<LineIcon size={24}/>} title="هنوز داده‌ای برای سبد نداریم" body="با ثبت قیمت کالاها در چند ماه، نرخ ماهانه و نقطه‌به‌نقطهٔ سبد نمایش داده می‌شود."/>}
         <div className="chart-note"><Info size={15}/><span>نرخ‌ها برآوردی بر پایهٔ قیمت‌های ثبت‌شدهٔ خودتان هستند، نه آمار رسمی. تورم نقطه‌به‌نقطه فقط با وجود قیمت کالاهای مشترک در همان ماهِ سال قبل محاسبه می‌شود.</span></div>
       </section>
-      </div>
+        </div>
+      </section>
 
       <section className="panel">
         <div className="panel-head"><div><h2>مقایسهٔ قیمت کالاها</h2><p>دامنهٔ کمینه تا بیشینه و درصد تغییر در بازهٔ انتخاب‌شده</p></div><button className="text-button" onClick={() => setPage('products')}>فهرست کالاها <ChevronLeft size={16}/></button></div>
