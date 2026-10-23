@@ -27,6 +27,12 @@
   --primary: #26759f;
   --primary-strong: #205f84;
   --primary-soft: #e5f2f8;
+  --icon-blue: #318fc3;
+  --icon-green: #399668;
+  --icon-yellow: #c89a27;
+  --icon-red: #c66a72;
+  --icon-purple: #8a73c4;
+  --icon-teal: #3a9d9d;
   --success: #31775d;
   --success-soft: #eaf5ee;
   --danger: #b6535b;
@@ -70,6 +76,12 @@
   --primary: #65b9df;
   --primary-strong: #89cfea;
   --primary-soft: #183743;
+  --icon-blue: #75c4e6;
+  --icon-green: #75c99a;
+  --icon-yellow: #e7c86d;
+  --icon-red: #ee9ba0;
+  --icon-purple: #b3a1e5;
+  --icon-teal: #77c6c7;
   --success: #71c995;
   --success-soft: #173627;
   --danger: #ed9296;
@@ -847,4 +859,42 @@ hr { margin: 18px 0; border: 0; border-top: 1px solid var(--border); }
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+
+/* Cheerful, role-based colors for interface icons */
+svg.lucide { color: var(--icon-blue); }
+.brand-mark svg,
+.button.primary svg,
+.button.solid-danger svg,
+.loading-mark svg { color: #fff; }
+.button.danger svg,
+.danger-icon svg,
+svg.lucide-trash-2 { color: var(--icon-red); }
+svg.lucide-trending-up { color: var(--icon-red); }
+svg.lucide-trending-down,
+svg.lucide-check,
+svg.lucide-shield-check { color: var(--icon-green); }
+svg.lucide-alert-triangle,
+svg.lucide-sun { color: var(--icon-yellow); }
+svg.lucide-moon { color: var(--icon-purple); }
+svg.lucide-info,
+svg.lucide-search,
+svg.lucide-calendar-days,
+svg.lucide-calendar,
+svg.lucide-file-json { color: var(--icon-blue); }
+svg.lucide-file-spreadsheet,
+svg.lucide-upload,
+svg.lucide-download { color: var(--icon-green); }
+svg.lucide-database,
+svg.lucide-hard-drive,
+svg.lucide-archive { color: var(--icon-purple); }
+svg.lucide-cloud-off,
+svg.lucide-wifi-off { color: var(--icon-yellow); }
+.sidebar nav button:nth-child(1) svg,
+.mobile-nav button:nth-child(1) svg { color: var(--icon-blue); }
+.sidebar nav button:nth-child(2) svg,
+.mobile-nav button:nth-child(2) svg { color: var(--icon-green); }
+.sidebar nav button:nth-child(3) svg,
+.mobile-nav button:nth-child(3) svg { color: var(--icon-yellow); }
+.sidebar nav button:nth-child(4) svg,
+.mobile-nav button:nth-child(4) svg { color: var(--icon-purple); }
 
