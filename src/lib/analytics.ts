@@ -21,6 +21,8 @@ export interface CompositePoint {
   coveragePct: number
   hasData: boolean
   changePct: number | null
+  yearOverYearChangePct: number | null
+  yearOverYearMatched: number
 }
 
 export interface ProductPointToPointChange {
@@ -206,6 +208,26 @@ export function buildCompositeIndex(purchases: Purchase[], throughMonth?: string
     const indexBeforeMonth = index
     const eligibleProductIds = [...lastKnown.keys()]
     const comparable: Array<{ ratio: number; weight: number }> = []
+    const previousYearPrices = monthlyPrices.get(shiftPersianMonthISO(month, -12))
+    const yearOverYearComparable: Array<{ ratio: number; weight: number }> = []
+
+    if (previousYearPrices) {
+      for (const [productId, currentPrice] of current) {
+        const previousYearPrice = previousYearPrices.get(productId)
+        if (previousYearPrice && isValidPrice(previousYearPrice) && isValidPrice(currentPrice)) {
+          yearOverYearComparable.push({
+            ratio: currentPrice / previousYearPrice,
+            weight: historicalMonthlySpendWeight(productId, month, historicalSpendTotals, firstSpendMonth)
+          })
+        }
+      }
+    }
+
+    const yearOverYearWeight = yearOverYearComparable.reduce((sum, item) => sum + item.weight, 0)
+    const yearOverYearLogRatio = yearOverYearWeight
+      ? yearOverYearComparable.reduce((sum, item) => sum + Math.log(item.ratio) * item.weight, 0) / yearOverYearWeight
+      : null
+    const yearOverYearChangePct = yearOverYearLogRatio == null ? null : (Math.exp(yearOverYearLogRatio) - 1) * 100
 
     for (const [productId, currentPrice] of current) {
       const previousPrice = lastKnown.get(productId)
@@ -235,7 +257,9 @@ export function buildCompositeIndex(purchases: Purchase[], throughMonth?: string
       matched: monthIndex === 0 ? 0 : comparable.length,
       coveragePct: monthIndex === 0 ? 0 : eligibleWeight ? Math.min(100, (freshWeight / eligibleWeight) * 100) : 0,
       hasData: current.size > 0,
-      changePct: comparable.length ? ((index / indexBeforeMonth) - 1) * 100 : null
+      changePct: comparable.length ? ((index / indexBeforeMonth) - 1) * 100 : null,
+      yearOverYearChangePct,
+      yearOverYearMatched: yearOverYearComparable.length
     })
 
     for (const [productId, currentPrice] of current) lastKnown.set(productId, currentPrice)
