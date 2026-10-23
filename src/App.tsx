@@ -195,9 +195,7 @@ export default function App() {
   const stats = useMemo(() => getProductStats(products, filteredPurchases), [products, filteredPurchases])
   const composite = useMemo(() => buildCompositeIndex(filteredPurchases, startOfPersianMonthISO(rangeTo || todayISO())), [filteredPurchases, rangeTo])
   const latestComposite = composite.at(-1)
-  const latestComparableComposite = [...composite].reverse().find(point => point.changePct != null)
   const observedIndexMonths = composite.filter(point => point.hasData)
-  const totalIndexChange = observedIndexMonths.length >= 2 && observedIndexMonths.some(point => point.changePct != null) ? ((observedIndexMonths.at(-1)!.index / observedIndexMonths[0].index) - 1) * 100 : null
   const categories = useMemo(() => ['همه', ...Array.from(new Set(activeProducts.map(product => product.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'fa'))], [activeProducts])
   const normalizedSearch = useMemo(() => normalizePersianText(search), [search])
   const filteredStats = useMemo(() => {
