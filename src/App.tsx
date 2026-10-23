@@ -447,7 +447,7 @@ export default function App() {
               <TableSortHeader table="index" column="index" label="شاخص سبد" sort={tableSorts.index} onSort={toggleTableSort}/>
               <TableSortHeader table="index" column="change" label="تغییر شاخص" sort={tableSorts.index} onSort={toggleTableSort}/>
             </tr></thead>
-            <tbody>{sortTableRows('index', observedIndexMonths, { month: point => point.month, index: point => point.index, change: point => point.changePct }).map((point, index) => <tr key={point.month}>
+            <tbody>{sortTableRows('index', observedIndexMonths, { month: point => point.month, index: point => point.index, change: point => point.changePct }).map(point => <tr key={point.month}>
               <td>{formatMonth(point.month)}</td>
               <td><strong className="table-primary-number">{faDecimal.format(point.index)}</strong></td>
               <td>{point.changePct == null ? <span className="table-muted">{point.month === observedIndexMonths[0].month ? 'مبنای شاخص' : 'بدون مقایسه'}</span> : <span className={'delta ' + pctTone(point.changePct)}>{formatPct(point.changePct)}</span>}</td>
