@@ -106,11 +106,6 @@ input, select, textarea { color: var(--text); background: var(--surface); }
 .sidebar nav button { min-height: 46px; appearance: none; border: 0; border-radius: 12px; padding: 11px 13px; display: flex; align-items: center; gap: 11px; text-align: right; color: #aeb9c7; background: transparent; font-size: 13.5px; transition: .18s ease; }
 .sidebar nav button:hover { color: #fff; background: rgba(255,255,255,.05); }
 .sidebar nav button.active { color: #18212f; background: #fff; font-weight: 750; box-shadow: 0 8px 20px rgba(0,0,0,.18); }
-.sidebar-status { margin-top: auto; padding: 12px; display: flex; align-items: center; gap: 10px; border: 1px solid rgba(255,255,255,.08); border-radius: 14px; background: rgba(255,255,255,.035); }
-.sidebar-status > div:last-child { display: grid; gap: 2px; }
-.sidebar-status strong { font-size: 12.5px; }
-.sidebar-status span { color: #98a6b5; font-size: 11px; }
-.privacy-dot { width: 9px; height: 9px; border-radius: 50%; background: #32d583; box-shadow: 0 0 0 5px rgba(50,213,131,.1); }
 .sidebar-scrim { display: none; }
 
 .topbar { height: 64px; position: sticky; top: 0; z-index: 30; padding: 0 28px; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(14px); }
