@@ -99,7 +99,6 @@ export default function App() {
   const [importMode, setImportMode] = useState<'replace'|'merge'>('replace')
   const [storageText, setStorageText] = useState('در حال بررسی…')
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null)
-  const [online, setOnline] = useState(navigator.onLine)
   const [systemDark, setSystemDark] = useState(() => matchMedia('(prefers-color-scheme: dark)').matches)
   const [confirmState, setConfirmState] = useState<{title:string; body:string; confirmText?:string; danger?:boolean} | null>(null)
   const confirmResolver = useRef<((value:boolean)=>void) | null>(null)
@@ -142,12 +141,6 @@ export default function App() {
     }
     window.addEventListener('beforeinstallprompt', handler)
     return () => window.removeEventListener('beforeinstallprompt', handler)
-  }, [])
-
-  useEffect(() => {
-    const sync = () => setOnline(navigator.onLine)
-    window.addEventListener('online', sync); window.addEventListener('offline', sync)
-    return () => { window.removeEventListener('online', sync); window.removeEventListener('offline', sync) }
   }, [])
 
   useEffect(() => {
@@ -675,7 +668,7 @@ export default function App() {
   return <div className="app-shell">
     <Sidebar page={page} open={sidebarOpen} onNavigate={navigate} onClose={() => setSidebarOpen(false)}/>
     <main className="main">
-      <Topbar page={page} online={online} isDark={isDark} onMenu={() => setSidebarOpen(true)} onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')}/>
+      <Topbar page={page} isDark={isDark} onMenu={() => setSidebarOpen(true)} onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')}/>
       <div className="page-content">
         {page==='dashboard'?renderDashboard():page==='products'?renderProducts():page==='analytics'?renderAnalytics():renderData()}
         <footer className="site-footer" aria-label="پاورقی">
