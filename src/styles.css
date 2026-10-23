@@ -178,7 +178,7 @@ input, select, textarea { color: var(--text); background: var(--surface); }
 .dashboard-increase-table th:nth-child(2) { width: 49%; }
 .dashboard-increase-table th:nth-child(3) { width: 35%; }
 .dashboard-increase-table td:nth-child(2) { overflow: hidden; text-overflow: ellipsis; }
-.dashboard-increase-table tbody td:nth-child(2) small { overflow: hidden; color: var(--muted); font-size: 11px; line-height: 1.6; text-overflow: ellipsis; }
+.dashboard-increase-table tbody td:nth-child(2) small { overflow: hidden; color: var(--text); opacity: .76; font-size: 12px; line-height: 1.7; text-overflow: ellipsis; }
 .dashboard-increase-table tr.clickable:focus-visible td { background: color-mix(in srgb, var(--primary-soft) 55%, var(--surface)); }
 .table-primary-number { color: var(--text); font-weight: 800; font-variant-numeric: tabular-nums; }
 .table-muted { color: var(--faint); font-size: 11px; white-space: nowrap; }
@@ -196,7 +196,8 @@ input, select, textarea { color: var(--text); background: var(--surface); }
 .compact-insight-table th:first-child { width: 48%; }
 .compact-insight-table th:nth-child(2) { width: 30%; }
 .compact-insight-table th:nth-child(3) { width: 22%; }
-.panel-wide { min-height: 420px; }
+.dashboard-grid { align-items: start; }
+.panel-wide { min-height: 0; }
 .chart-lg { height: 310px; direction: ltr; }
 .chart-md { height: 300px; direction: ltr; }
 .recharts-cartesian-axis-tick-value { fill: var(--muted); font-size: 11.5px; font-family: 'Vazirmatn Variable', Vazirmatn, sans-serif; }
@@ -779,9 +780,7 @@ hr { margin: 18px 0; border: 0; border-top: 1px solid var(--border); }
 }
 .insight-table-wrap .insight-table thead th,
 .comparison-table-wrap .comparison-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 5;
+  position: static;
 }
 .table-more {
   margin-top: 12px;
