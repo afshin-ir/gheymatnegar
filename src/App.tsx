@@ -201,11 +201,6 @@ export default function App() {
     })
   }, [stats, normalizedSearch, category, sortBy])
   const filtersActive = Boolean(normalizedSearch) || category !== 'همه' || sortBy !== 'recent'
-  const topChanges = useMemo(() => stats
-    .filter(stat => stat.changePct != null && stat.changePct > 0 && stat.count >= 2 && !stat.product.archived)
-    .sort((a, b) => (b.changePct ?? 0) - (a.changePct ?? 0))
-    .slice(0, 7)
-    .map(stat => ({ id: stat.product.id, name: stat.product.name, change: stat.changePct, count: stat.count, lastDate: stat.lastDate })), [stats])
   const selectedProduct = products.find(product => product.id === selectedProductId)
   const selectedPurchasesAll = useMemo(() => filteredPurchases.filter(purchase => purchase.productId === selectedProductId), [filteredPurchases, selectedProductId])
   const selectedHistory = useMemo(() => sortPurchases(selectedPurchasesAll).map(purchase => ({ date: purchase.date, price: purchase.unitPrice, total: purchase.totalPaid })), [selectedPurchasesAll])
@@ -414,8 +409,8 @@ export default function App() {
         <button className="button secondary small" onClick={() => setPage('data')}>رفتن به پشتیبان</button>
       </section> : null}
 
-      <div className="dashboard-grid">
-        <section className="panel panel-wide">
+      <div className="dashboard-grid dashboard-grid-single">
+        <section className="panel">
           <div className="panel-head">
             <div>
               <h2>شاخص سبد و تغییر قیمت</h2>
@@ -440,21 +435,6 @@ export default function App() {
           <div className="chart-note"><Info size={15}/><span>ماه پایه با شاخص ۱۰۰ نمایش داده می‌شود؛ پس از آن فقط ماه‌هایی می‌آیند که دست‌کم یک کالای قابل‌مقایسه دارند. ماه‌های بدون مقایسه، تورم صفر محسوب نمی‌شوند.</span></div>
         </section>
 
-        <section className="panel">
-          <div className="panel-head"><div><h2>بیشترین افزایش</h2><p>بیشترین تغییر قیمت در بازهٔ انتخاب‌شده</p></div></div>
-          {topChanges.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table dashboard-increase-table">
-            <thead><tr>
-              <TableSortHeader table="increase" column="rank" label="رتبه" sort={tableSorts.increase} onSort={toggleTableSort}/>
-              <TableSortHeader table="increase" column="name" label="کالا" sort={tableSorts.increase} onSort={toggleTableSort}/>
-              <TableSortHeader table="increase" column="change" label="افزایش" sort={tableSorts.increase} onSort={toggleTableSort} initialDirection="desc"/>
-            </tr></thead>
-            <tbody>{sortTableRows('increase', topChanges.map((item, rank) => ({ ...item, rank: rank + 1 })), { rank: item => item.rank, name: item => item.name, change: item => item.change }).map((item, index) => <tr key={item.id} className="clickable" tabIndex={0} role="button" aria-label={'مشاهدهٔ سابقهٔ قیمت ' + item.name} onClick={() => { selectProduct(item.id); setPage('products') }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectProduct(item.id); setPage('products') } }}>
-              <td><span className="table-rank">{faNumber.format(index + 1)}</span></td>
-              <td><span className="increase-name"><span>{item.name}</span><ChevronLeft size={14} className="increase-row-cue" aria-hidden="true"/></span><small title={item.lastDate ? 'آخرین ثبت: ' + formatDate(item.lastDate) : undefined}>{faNumber.format(item.count)} ثبت · {item.lastDate ? formatShortDate(item.lastDate) : '—'}</small></td>
-              <td><span className="delta up">{formatPct(item.change)}</span></td>
-            </tr>)}</tbody>
-          </table></div> : <EmptyState title="هنوز مقایسه‌ای نداریم" body="هر کالا به حداقل دو ثبت قیمت نیاز دارد."/>}
-        </section>
       </div>
 
       <section className="panel">
