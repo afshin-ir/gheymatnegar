@@ -450,7 +450,7 @@ export default function App() {
             <tbody>{sortTableRows('index', observedIndexMonths, { month: point => point.month, index: point => point.index, change: point => point.changePct }).map((point, index) => <tr key={point.month}>
               <td>{formatMonth(point.month)}</td>
               <td><strong className="table-primary-number">{faDecimal.format(point.index)}</strong></td>
-              <td>{point.changePct == null ? <span className="table-muted">{index === 0 ? 'مبنای شاخص' : 'بدون مقایسه'}</span> : <span className={'delta ' + pctTone(point.changePct)}>{formatPct(point.changePct)}</span>}</td>
+              <td>{point.changePct == null ? <span className="table-muted">{point.month === observedIndexMonths[0].month ? 'مبنای شاخص' : 'بدون مقایسه'}</span> : <span className={'delta ' + pctTone(point.changePct)}>{formatPct(point.changePct)}</span>}</td>
             </tr>)}</tbody>
           </table></div> : <EmptyState icon={<LineIcon size={24}/>} title="هنوز داده‌ای برای شاخص نداریم" body="با ثبت قیمت کالاها، مقادیر ماهانهٔ شاخص در این بخش نمایش داده می‌شوند."/>}
           <div className="chart-note"><Info size={15}/><span>درصد هر ماه نسبت به آخرین قیمت قابل‌مقایسهٔ پیشین محاسبه می‌شود. ماه‌های بدون ثبت در جدول نمی‌آیند و تغییر صفر محسوب نمی‌شوند.</span></div>
