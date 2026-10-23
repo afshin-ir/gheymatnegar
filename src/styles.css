@@ -190,9 +190,25 @@ input, select, textarea { color: var(--text); background: var(--surface); }
 .panel-head p, .settings-title p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.8; }
 .dashboard-grid, .analytics-grid, .finance-grid { margin-bottom: 16px; display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(340px, .85fr); gap: 16px; }
 .dashboard-grid.dashboard-grid-single { grid-template-columns: minmax(0, 1fr); }
-.dashboard-insight-card { margin-bottom: 16px; }
-.dashboard-inflation-table { min-width: 920px; }
-.dashboard-inflation-table tbody td:first-child { min-width: 190px; white-space: normal; }
+.dashboard-inflation-grid { margin-bottom: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.dashboard-inflation-card { min-width: 0; }
+.dashboard-inflation-card .insight-table { width: 100%; min-width: 0; table-layout: fixed; }
+.dashboard-inflation-card .insight-table thead th { padding-inline: 6px; white-space: normal; }
+.dashboard-inflation-card .insight-table .table-sort { justify-content: center; text-align: center; font-size: 11.5px; line-height: 1.45; }
+.dashboard-inflation-card .insight-table tbody td { padding-inline: 6px; font-size: 12px; white-space: normal; }
+.dashboard-inflation-card .insight-table tbody td:not(:first-child) { text-align: center; font-variant-numeric: tabular-nums; }
+.dashboard-basket-table th:nth-child(1) { width: 25%; }
+.dashboard-basket-table th:nth-child(2) { width: 23%; }
+.dashboard-basket-table th:nth-child(3) { width: 27%; }
+.dashboard-basket-table th:nth-child(4) { width: 25%; }
+.dashboard-product-inflation-table th:nth-child(1) { width: 30%; }
+.dashboard-product-inflation-table th:nth-child(2) { width: 22%; }
+.dashboard-product-inflation-table th:nth-child(3) { width: 22%; }
+.dashboard-product-inflation-table th:nth-child(4) { width: 26%; }
+.dashboard-product-inflation-table tbody td:first-child { overflow-wrap: anywhere; }
+@media (max-width: 1180px) {
+  .dashboard-inflation-grid { grid-template-columns: 1fr; }
+}
 .analytics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .analysis-table-grid { align-items: start; }
 .analysis-table-wide { grid-column: 1 / -1; }
