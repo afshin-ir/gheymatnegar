@@ -482,13 +482,14 @@ export default function App() {
             matched: point => point.yearOverYearMatched
           }).map(point => <tr key={point.month}>
             <td>{formatMonth(point.month)}</td>
-            <td>{point.changePct == null ? <span className="table-muted">{point.month === observedIndexMonths[0].month ? 'مبنای سبد' : 'قابل محاسبه نیست'}</span> : <span className={'delta ' + pctTone(point.changePct)}>{formatPct(point.changePct)}</span>}</td>
+            <td>{point.changePct == null ? <span className="table-muted">بدون دادهٔ قابل‌مقایسه</span> : <span className={'delta ' + pctTone(point.changePct)}>{formatPct(point.changePct)}</span>}</td>
             <td>{point.yearOverYearChangePct == null ? <span className="table-muted">دادهٔ هم‌ماه ندارد</span> : <span className={'delta ' + pctTone(point.yearOverYearChangePct)}>{formatPct(point.yearOverYearChangePct)}</span>}</td>
             <td>{faNumber.format(point.yearOverYearMatched)}</td>
           </tr>)}</tbody>
         </table></div> : <EmptyState icon={<LineIcon size={24}/>} title="هنوز داده‌ای برای سبد نداریم" body="با ثبت قیمت کالاها در چند ماه، نرخ ماهانه و نقطه‌به‌نقطهٔ سبد نمایش داده می‌شود."/>}
         <div className="chart-note"><Info size={15}/><span>نرخ‌ها برآوردی بر پایهٔ قیمت‌های ثبت‌شدهٔ خودتان هستند، نه آمار رسمی. تورم نقطه‌به‌نقطه فقط با وجود قیمت کالاهای مشترک در همان ماهِ سال قبل محاسبه می‌شود.</span></div>
       </section>
+      </div>
 
       <section className="panel">
         <div className="panel-head"><div><h2>مقایسهٔ قیمت کالاها</h2><p>دامنهٔ کمینه تا بیشینه و درصد تغییر در بازهٔ انتخاب‌شده</p></div><button className="text-button" onClick={() => setPage('products')}>فهرست کالاها <ChevronLeft size={16}/></button></div>
