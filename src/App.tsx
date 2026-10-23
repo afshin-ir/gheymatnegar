@@ -17,7 +17,7 @@ import { formatDate, formatMoney, formatMonth, formatPct, faDecimal, faNumber, t
 import { makeSearchKey, normalizePersianText, normalizeStoreName, sameNormalizedText } from './lib/text'
 import { planBackupMerge, resolveMergeCurrency } from './lib/merge'
 import { APP_VERSION, BACKUP_REMINDER_DAYS, MAX_BACKUP_FILE_BYTES } from './lib/constants'
-import { shiftPersianMonthISO, startOfPersianMonthISO } from './lib/persian-date'
+import { startOfPersianMonthISO } from './lib/persian-date'
 import { ChartTooltip } from './components/charts'
 import { ProductForm, PurchaseForm } from './components/forms'
 import { PersianDatePicker } from './components/date-picker'
