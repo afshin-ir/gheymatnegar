@@ -174,9 +174,10 @@ input, select, textarea { color: var(--text); background: var(--surface); }
 .dashboard-index-table th:nth-child(1) { width: 42%; }
 .dashboard-index-table th:nth-child(2) { width: 25%; }
 .dashboard-index-table th:nth-child(3) { width: 33%; }
-.dashboard-increase-table th:nth-child(1) { width: 16%; }
-.dashboard-increase-table th:nth-child(2) { width: 49%; }
-.dashboard-increase-table th:nth-child(3) { width: 35%; }
+.dashboard-increase-table th:nth-child(1) { width: 24%; }
+.dashboard-increase-table th:nth-child(2) { width: 44%; }
+.dashboard-increase-table th:nth-child(3) { width: 32%; }
+.dashboard-increase-table th:first-child .table-sort { justify-content: center; gap: 5px; padding-inline: 5px; }
 .dashboard-increase-table td:nth-child(2) { overflow: hidden; text-overflow: ellipsis; }
 .dashboard-increase-table tbody td:nth-child(2) small { overflow: hidden; color: var(--text); opacity: .76; font-size: 12px; line-height: 1.7; text-overflow: ellipsis; }
 .dashboard-increase-table tr.clickable:focus-visible td { background: color-mix(in srgb, var(--primary-soft) 55%, var(--surface)); }
