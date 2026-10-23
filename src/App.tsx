@@ -426,7 +426,7 @@ export default function App() {
       </section> : null}
 
       
-      <div className="dashboard-insight-pair">
+      <div className={`dashboard-insight-pair ${pointToPointRows.length ? '' : 'is-single'}`}>
       {pointToPointRows.length ? <section className="panel point-to-point-panel">
         <div className="panel-head">
           <div>
