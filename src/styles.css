@@ -189,6 +189,7 @@ input, select, textarea { color: var(--text); background: var(--surface); }
 .panel-head h2, .settings-title h2 { margin: 0; font-size: 15.5px; }
 .panel-head p, .settings-title p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.8; }
 .dashboard-grid, .analytics-grid, .finance-grid { margin-bottom: 16px; display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(340px, .85fr); gap: 16px; }
+.dashboard-grid.dashboard-grid-single { grid-template-columns: minmax(0, 1fr); }
 .analytics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .analysis-table-grid { align-items: start; }
 .analysis-table-wide { grid-column: 1 / -1; }
