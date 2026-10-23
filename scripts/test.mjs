@@ -88,7 +88,7 @@ const pointToPoint = analytics.buildPointToPointChanges(pointToPointProducts, [
 assert.equal(pointToPoint.length, 2)
 assert.equal(pointToPoint[0].month, '2026-08-23')
 assert.equal(pointToPoint.find(row => row.product.id === 'y1').previousPrice, 100)
-assert.equal(pointToPoint.find(row => row.product.id === 'y1').changePct, 30)
+assert.ok(Math.abs(pointToPoint.find(row => row.product.id === 'y1').changePct - 30) < 1e-9)
 assert.equal(pointToPoint.find(row => row.product.id === 'y2').previousPrice, null)
 assert.equal(pointToPoint.find(row => row.product.id === 'y2').changePct, null)
 assert.deepEqual(analytics.buildPointToPointChanges(pointToPointProducts, [], undefined), [])
