@@ -426,25 +426,35 @@ export default function App() {
           <div className="panel-head">
             <div>
               <h2>شاخص سبد و تغییر قیمت</h2>
-              <p>شاخص زنجیره‌ای با پایهٔ ۱۰۰. ماه‌های بی‌ثبت با شاخص ثابت و بدون ستون درصد نمایش داده می‌شوند؛ در ماه‌های بدون قیمت درصدی نمایش داده نمی‌شود؛ تغییر هر نقطه نسبت به نقطهٔ قابل‌مقایسهٔ پیشین است.</p>
+              <p>عدد شاخص و درصد تغییر در ماه‌های دارای ثبت؛ کارت‌ها را افقی مرور کنید.</p>
             </div>
-            {latestComposite ? <Badge tone={!latestComposite.hasData ? 'default' : latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{latestComposite.hasData ? `${faDecimal.format(latestComposite.coveragePct)}٪ پوشش` : 'بدون ثبت این ماه'}</Badge> : <Badge tone="info">داده‌ای نداریم</Badge>}
+            {latestComposite ? <Badge tone={!latestComposite.hasData ? 'default' : latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{latestComposite.hasData ? faDecimal.format(latestComposite.coveragePct) + '٪ پوشش' : 'بدون ثبت این ماه'}</Badge> : <Badge tone="info">داده‌ای نداریم</Badge>}
           </div>
           {latestComposite && !latestComposite.hasData ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمتی ثبت نشده؛ شاخص از آخرین مقدار موجود ادامه پیدا می‌کند و این ماه تورم صفر محسوب نمی‌شود.</span></div> : null}
           {latestComposite?.hasData && latestComposite.matched === 0 ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمت قابل‌مقایسه‌ای ثبت نشده؛ برای محاسبهٔ تغییر، قیمت کالاهای دارای سابقه را دوباره ثبت کنید.</span></div> : null}
-          {composite.length > 1 ? <>
-            <div className="chart-lg"><ResponsiveContainer width="100%" height="100%"><AreaChart data={composite} margin={{ top: 6, right: 12, bottom: 10, left: 8 }}>
-              <defs><linearGradient id="indexFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.3}/><stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0.02}/></linearGradient></defs>
-              <CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="month" tickFormatter={formatMonth} tickMargin={10} minTickGap={28} interval="preserveStartEnd"/><YAxis domain={['auto', 'auto']} orientation="right" tickMargin={8}/><Tooltip content={<ChartTooltip valueKey="index" labelFormatter={formatMonth} showIndexCoverage/>}/><Area type="monotone" dataKey="index" stroke="var(--chart-1)" fill="url(#indexFill)" strokeWidth={3}/>
-            </AreaChart></ResponsiveContainer></div>
-            <div className="chart-md monthly-change-chart"><div className="section-head"><h3>تغییر شاخص در ماه</h3><span>درصد نسبت به نقطهٔ قبلی شاخص</span></div><ResponsiveContainer width="100%" height="100%"><BarChart data={composite} margin={{ top: 30, right: 12, bottom: 30, left: 8 }}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="month" tickFormatter={formatMonth} tickMargin={10} minTickGap={28} interval="preserveStartEnd"/><YAxis orientation="right" tickFormatter={value => `${faDecimal.format(Number(value))}٪`} width={68}/><Bar dataKey="changePct" radius={[5, 5, 0, 0]}>{composite.map(point => <Cell key={point.month} fill={point.changePct == null ? 'var(--chart-1)' : point.changePct >= 0 ? 'var(--danger)' : 'var(--success)'}/>)}<LabelList dataKey="changePct" content={<MonthlyChangeLabel/>}/></Bar></BarChart></ResponsiveContainer></div>
-          </> : <EmptyState icon={<LineIcon size={24}/>} title="برای نمودار دادهٔ بیشتری لازم است" body="قیمت یک یا چند کالا را در دو ماه متفاوت ثبت کنید."/>}
-          <div className="chart-note"><Info size={15}/><span>اگر قیمت کالایی چند ماه ثبت نشود، تغییر آن هنگام ثبت دوباره دیده می‌شود. درصدها را همراه با پوشش شاخص و تعداد قیمت‌های ثبت‌شده تفسیر کنید.</span></div>
+          {observedIndexMonths.length ? <>
+            <div className="index-timeline" aria-label="شاخص و درصد تغییر ماهانه">
+              {observedIndexMonths.map(point => <article className="index-point" key={point.month}>
+                <span className="index-point-month">{formatMonth(point.month)}</span>
+                <span className="index-point-label">شاخص سبد</span>
+                <strong className="index-point-value">{faDecimal.format(point.index)}</strong>
+                <div className={'index-point-change ' + pctTone(point.changePct)}>
+                  <span>تغییر</span><b>{point.changePct == null ? 'نقطهٔ پایه' : formatPct(point.changePct)}</b>
+                </div>
+                {point.changePct == null ? <span className="index-point-coverage">مبنای شاخص</span> : <span className="index-point-coverage">پوشش {faDecimal.format(point.coveragePct)}٪</span>}
+              </article>)}
+            </div>
+          </> : <EmptyState icon={<LineIcon size={24}/>} title="هنوز داده‌ای برای شاخص نداریم" body="با ثبت قیمت کالاها، مقادیر ماهانهٔ شاخص در این بخش نمایش داده می‌شوند."/>}
+          <div className="chart-note"><Info size={15}/><span>درصد هر ماه نسبت به آخرین قیمت قابل‌مقایسهٔ پیشین محاسبه می‌شود. ماه‌های بدون ثبت به‌صورت کارت جدا دیده نمی‌شوند و تغییر صفر محسوب نمی‌شوند.</span></div>
         </section>
 
         <section className="panel">
           <div className="panel-head"><div><h2>بیشترین افزایش</h2><p>از اولین تا آخرین ثبت هر کالا</p></div></div>
-          {topChanges.length ? <div className="chart-md"><ResponsiveContainer width="100%" height="100%"><BarChart data={topChanges} layout="vertical" margin={{ left: 8, right: 58 }}><CartesianGrid strokeDasharray="4 4" horizontal={false}/><XAxis type="number" reversed tickFormatter={value => `${faDecimal.format(Number(value))}٪`}/><YAxis dataKey="name" type="category" width={104} orientation="right"/><Bar dataKey="change" fill="var(--chart-2)" radius={[5, 5, 5, 5]}><LabelList dataKey="change" content={<IncreaseBarLabel/>}/></Bar></BarChart></ResponsiveContainer></div> : <EmptyState title="هنوز مقایسه‌ای نداریم" body="هر کالا به حداقل دو ثبت قیمت نیاز دارد."/>}
+          {topChanges.length ? <ol className="increase-list">{topChanges.map((item, index) => <li className="increase-row" key={item.name}>
+            <span className="increase-rank">{faNumber.format(index + 1)}</span>
+            <span className="increase-name" title={item.name}>{item.name}</span>
+            <strong className="increase-value">{formatPct(item.change)}</strong>
+          </li>)}</ol> : <EmptyState title="هنوز مقایسه‌ای نداریم" body="هر کالا به حداقل دو ثبت قیمت نیاز دارد."/>}
         </section>
       </div>
 
