@@ -7,7 +7,7 @@ import {
   Sun, Trash2, TrendingDown, TrendingUp, Upload, WifiOff, X
 } from 'lucide-react'
 import {
-  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis
+  Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from 'recharts'
 import { db, DEFAULT_SETTINGS } from './lib/db'
 import type { BackupData, Product, Purchase, Store, ThemeMode } from './lib/types'
@@ -32,34 +32,6 @@ interface BeforeInstallPromptEvent extends Event {
 
 function pctTone(value: number | null) { return value == null || value === 0 ? 'neutral' : value > 0 ? 'up' : 'down' }
 
-type BarLabelProps = { x?: number; y?: number; width?: number; height?: number; value?: number | string; payload?: { changePct?: number | null } }
-
-function IncreaseBarLabel({ x = 0, y = 0, width = 0, height = 0, value }: BarLabelProps) {
-  if (value == null || !Number.isFinite(Number(value))) return null
-  const label = String(faDecimal.format(Number(value))) + '٪'
-  const inside = width >= 52
-  const labelWidth = Math.max(38, label.length * 7 + 14)
-  const centerY = y + height / 2
-  const badgeX = inside ? x + 5 : x - labelWidth - 7
-  return <g aria-hidden="true">
-    <rect x={badgeX} y={centerY - 10} width={labelWidth} height={20} rx={7} fill={inside ? '#fff' : 'var(--surface)'} stroke={inside ? 'none' : 'var(--border-strong)'}/>
-    <text x={badgeX + labelWidth / 2} y={centerY + 4} textAnchor="middle" fill="var(--chart-2)" fontSize={11} fontWeight={750}>{label}</text>
-  </g>
-}
-
-function MonthlyChangeLabel({ x = 0, y = 0, width = 0, height = 0, value }: BarLabelProps) {
-  if (value == null || !Number.isFinite(Number(value))) return null
-  const amount = Number(value)
-  const label = String(faDecimal.format(amount)) + '٪'
-  const tone = amount > 0 ? 'var(--danger)' : amount < 0 ? 'var(--success)' : 'var(--muted)'
-  const badgeWidth = Math.max(38, label.length * 6.5 + 14)
-  const centerX = x + width / 2
-  const centerY = amount < 0 ? y + height + 14 : y - 14
-  return <g aria-hidden="true">
-    <rect x={centerX - badgeWidth / 2} y={centerY - 10} width={badgeWidth} height={20} rx={7} fill="var(--surface)" stroke={tone}/>
-    <text x={centerX} y={centerY + 4} textAnchor="middle" fill={tone} fontSize={10.5} fontWeight={750}>{label}</text>
-  </g>
-}
 export default function App() {
   const productsLive = useLiveQuery(() => db.products.toArray())
   const storesLive = useLiveQuery(() => db.stores.toArray())
