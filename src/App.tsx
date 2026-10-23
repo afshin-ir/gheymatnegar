@@ -196,6 +196,15 @@ export default function App() {
   const selectedBestStore = selectedNamedStores.length >= 2 ? selectedNamedStores[0] : null
   const filteredProductHistory = selectedPurchasesAll
   const periodChange = periodProductChange(filteredProductHistory)
+  const analyticsHistory = useMemo(() => {
+    const ordered = sortPurchases(filteredProductHistory)
+    return ordered.map((purchase, index) => ({
+      purchase,
+      changePct: index > 0 && ordered[index - 1].unitPrice > 0
+        ? ((purchase.unitPrice / ordered[index - 1].unitPrice) - 1) * 100
+        : null
+    }))
+  }, [filteredProductHistory])
   const catInflation = useMemo(() => categoryInflation(products, filteredPurchases), [products, filteredPurchases])
   const storeData = useMemo(() => storeComparison(selectedProductId, filteredPurchases, stores), [selectedProductId, filteredPurchases, stores])
   const namedStoreData = useMemo(() => storeData.filter(row => row.store !== 'بدون فروشگاه' && row.store !== 'فروشگاه حذف‌شده'), [storeData])
@@ -204,7 +213,7 @@ export default function App() {
     .filter(stat => stat.count >= 2 && stat.volatilityPct != null)
     .sort((a, b) => (b.volatilityPct ?? 0) - (a.volatilityPct ?? 0))
     .slice(0, 8)
-    .map(stat => ({ name: stat.product.name, volatility: stat.volatilityPct })), [activeProducts, filteredPurchases])
+    .map(stat => ({ name: stat.product.name, volatility: stat.volatilityPct, count: stat.count })), [activeProducts, filteredPurchases])
   const recentStats = useMemo(() => stats
     .filter(stat => stat.count > 0 && !stat.product.archived)
     .sort((a, b) => (b.lastDate ?? '').localeCompare(a.lastDate ?? '')), [stats])
@@ -398,35 +407,33 @@ export default function App() {
           <div className="panel-head">
             <div>
               <h2>شاخص سبد و تغییر قیمت</h2>
-              <p>عدد شاخص و درصد تغییر ماه‌های دارای ثبت، در چیدمانی چندردیفه.</p>
+              <p>روند ماهانهٔ شاخص و درصد تغییر در یک جدول</p>
             </div>
-            {latestComposite ? <Badge tone={!latestComposite.hasData ? 'default' : latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{latestComposite.hasData ? faDecimal.format(latestComposite.coveragePct) + '٪ پوشش' : 'بدون ثبت این ماه'}</Badge> : <Badge tone="info">داده‌ای نداریم</Badge>}
+            {latestComposite ? <Badge tone={!latestComposite.hasData ? 'default' : latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{latestComposite.hasData ? faDecimal.format(latestComposite.coveragePct) + '٪ پوشش آخرین ماه' : 'بدون ثبت این ماه'}</Badge> : <Badge tone="info">داده‌ای نداریم</Badge>}
           </div>
           {latestComposite && !latestComposite.hasData ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمتی ثبت نشده؛ شاخص از آخرین مقدار موجود ادامه پیدا می‌کند و این ماه تورم صفر محسوب نمی‌شود.</span></div> : null}
           {latestComposite?.hasData && latestComposite.matched === 0 ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمت قابل‌مقایسه‌ای ثبت نشده؛ برای محاسبهٔ تغییر، قیمت کالاهای دارای سابقه را دوباره ثبت کنید.</span></div> : null}
-          {observedIndexMonths.length ? <>
-            <div className="index-timeline" aria-label="شاخص و درصد تغییر ماهانه">
-              {observedIndexMonths.map(point => <article className="index-point" key={point.month}>
-                <span className="index-point-month">{formatMonth(point.month)}</span>
-                <span className="index-point-label">شاخص سبد</span>
-                <strong className="index-point-value">{faDecimal.format(point.index)}</strong>
-                <div className={'index-point-change ' + pctTone(point.changePct)}>
-                  <span>تغییر</span><b>{point.changePct == null ? 'نقطهٔ پایه' : formatPct(point.changePct)}</b>
-                </div>
-                {point.changePct == null ? <span className="index-point-coverage">مبنای شاخص</span> : <span className="index-point-coverage">پوشش {faDecimal.format(point.coveragePct)}٪</span>}
-              </article>)}
-            </div>
-          </> : <EmptyState icon={<LineIcon size={24}/>} title="هنوز داده‌ای برای شاخص نداریم" body="با ثبت قیمت کالاها، مقادیر ماهانهٔ شاخص در این بخش نمایش داده می‌شوند."/>}
-          <div className="chart-note"><Info size={15}/><span>درصد هر ماه نسبت به آخرین قیمت قابل‌مقایسهٔ پیشین محاسبه می‌شود. ماه‌های بدون ثبت به‌صورت کارت جدا دیده نمی‌شوند و تغییر صفر محسوب نمی‌شوند.</span></div>
+          {observedIndexMonths.length ? <div className="table-wrap"><table className="insight-table dashboard-index-table">
+            <thead><tr><th>ماه</th><th>شاخص سبد</th><th>تغییر شاخص</th></tr></thead>
+            <tbody>{observedIndexMonths.map((point, index) => <tr key={point.month}>
+              <td>{formatMonth(point.month)}</td>
+              <td><strong className="table-primary-number">{faDecimal.format(point.index)}</strong></td>
+              <td>{point.changePct == null ? <span className="table-muted">{index === 0 ? 'مبنای شاخص' : 'بدون مقایسه'}</span> : <span className={'delta ' + pctTone(point.changePct)}>{formatPct(point.changePct)}</span>}</td>
+            </tr>)}</tbody>
+          </table></div> : <EmptyState icon={<LineIcon size={24}/>} title="هنوز داده‌ای برای شاخص نداریم" body="با ثبت قیمت کالاها، مقادیر ماهانهٔ شاخص در این بخش نمایش داده می‌شوند."/>}
+          <div className="chart-note"><Info size={15}/><span>درصد هر ماه نسبت به آخرین قیمت قابل‌مقایسهٔ پیشین محاسبه می‌شود. ماه‌های بدون ثبت در جدول نمی‌آیند و تغییر صفر محسوب نمی‌شوند.</span></div>
         </section>
 
         <section className="panel">
           <div className="panel-head"><div><h2>بیشترین افزایش</h2><p>از اولین تا آخرین ثبت هر کالا</p></div></div>
-          {topChanges.length ? <ol className="increase-list">{topChanges.map((item, index) => <li className="increase-row" key={item.name}>
-            <span className="increase-rank">{faNumber.format(index + 1)}</span>
-            <span className="increase-name" title={item.name}>{item.name}</span>
-            <strong className="increase-value">{formatPct(item.change)}</strong>
-          </li>)}</ol> : <EmptyState title="هنوز مقایسه‌ای نداریم" body="هر کالا به حداقل دو ثبت قیمت نیاز دارد."/>}
+          {topChanges.length ? <div className="table-wrap"><table className="insight-table dashboard-increase-table">
+            <thead><tr><th>رتبه</th><th>کالا</th><th>افزایش</th></tr></thead>
+            <tbody>{topChanges.map((item, index) => <tr key={item.name}>
+              <td><span className="table-rank">{faNumber.format(index + 1)}</span></td>
+              <td>{item.name}</td>
+              <td><span className="delta up">{formatPct(item.change)}</span></td>
+            </tr>)}</tbody>
+          </table></div> : <EmptyState title="هنوز مقایسه‌ای نداریم" body="هر کالا به حداقل دو ثبت قیمت نیاز دارد."/>}
         </section>
       </div>
 
@@ -501,26 +508,58 @@ export default function App() {
   </>
 
   const renderAnalytics = () => <>
-    <div className="page-heading"><div><span className="eyebrow">تحلیل عمیق</span><h1>تحلیل تورم و نوسان</h1><p>بازه زمانی را محدود کنید و رفتار هر کالا، دسته و فروشگاه را مقایسه کنید.</p></div></div>
+    <div className="page-heading"><div><span className="eyebrow">تحلیل عمیق</span><h1>تحلیل تورم و نوسان</h1><p>بازهٔ زمانی را محدود کنید و تغییر قیمت کالاها، دسته‌ها و فروشگاه‌ها را در جدول بررسی کنید.</p></div></div>
 
     {renderRangeFilter()}
     <section className="panel filter-panel product-analysis-filter">
       <label className="field"><span>کالا برای تحلیل جزئی</span><select value={selectedProductId} onChange={event => setSelectedProductId(event.target.value)}>{activeProducts.map(product => <option value={product.id} key={product.id}>{product.name}</option>)}</select></label>
     </section>
 
+    <div className="stats-grid three"><StatCard label={'تغییر ' + (selectedProduct?.name ?? 'کالا')} value={formatPct(periodChange)} hint={faNumber.format(filteredProductHistory.length) + ' ثبت قیمت در این بازه'} tone={pctTone(periodChange)}/><StatCard label="ثبت‌های قیمت بازه" value={faNumber.format(filteredPurchases.length)} hint="در بازهٔ انتخاب‌شده"/><StatCard label="کالاهای دارای داده" value={faNumber.format(new Set(filteredPurchases.map(purchase => purchase.productId)).size)} hint="در بازهٔ انتخاب‌شده"/></div>
 
-    <div className="stats-grid three"><StatCard label={`تغییر ${selectedProduct?.name ?? 'کالا'}`} value={formatPct(periodChange)} hint={`${faNumber.format(filteredProductHistory.length)} ثبت قیمت در این بازه`} tone={pctTone(periodChange)}/><StatCard label="ثبت‌های قیمت بازه" value={faNumber.format(filteredPurchases.length)} hint="در بازه انتخاب‌شده"/><StatCard label="کالاهای دارای داده" value={faNumber.format(new Set(filteredPurchases.map(purchase => purchase.productId)).size)} hint="در بازه انتخاب‌شده"/></div>
+    <div className="analytics-grid analysis-table-grid">
+      <section className="panel analysis-table-wide">
+        <div className="panel-head"><div><h2>روند قیمت {selectedProduct?.name ?? ''}</h2><p>قیمت واحد مؤثر و تغییر آن نسبت به ثبت پیشین در بازهٔ انتخاب‌شده</p></div></div>
+        {analyticsHistory.length ? <div className="table-wrap"><table className="insight-table price-history-table">
+          <thead><tr><th>تاریخ ثبت</th><th>قیمت هر واحد</th><th>تغییر با ثبت پیشین</th><th>فروشگاه</th></tr></thead>
+          <tbody>{analyticsHistory.slice().reverse().map(({ purchase, changePct }) => <tr key={purchase.id}>
+            <td>{formatDate(purchase.date)}</td>
+            <td><strong className="table-primary-number">{money(purchase.unitPrice)}</strong></td>
+            <td>{changePct == null ? <span className="table-muted">مبنای بازه</span> : <span className={'delta ' + pctTone(changePct)}>{formatPct(changePct)}</span>}</td>
+            <td>{purchase.storeId ? stores.find(store => store.id === purchase.storeId)?.name ?? 'فروشگاه حذف‌شده' : 'بدون فروشگاه'}</td>
+          </tr>)}</tbody>
+        </table></div> : <EmptyState title="داده‌ای در این بازه نیست" body="برای مشاهدهٔ روند، کالا و بازهٔ دیگری انتخاب کنید."/>}
+      </section>
 
-    <div className="analytics-grid">
-      <section className="panel panel-wide"><div className="panel-head"><div><h2>روند قیمت {selectedProduct?.name ?? ''}</h2><p>قیمت واحد مؤثر پس از تخفیف در بازه انتخاب‌شده</p></div></div>{filteredProductHistory.length > 1 ? <div className="chart-lg"><ResponsiveContainer width="100%" height="100%"><LineChart data={sortPurchases(filteredProductHistory)} margin={{ top: 6, right: 12, bottom: 10, left: 8 }}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="date" tickFormatter={formatDate} tickMargin={10} minTickGap={34} interval="preserveStartEnd"/><YAxis orientation="right" tickFormatter={value => faNumber.format(Number(value))} width={80} tickMargin={8}/><Tooltip content={<ChartTooltip valueKey="unitPrice" isMoney currency={settings.currency} compactMoney={settings.compactNumbers} labelFormatter={formatDate}/>}/><Line type="monotone" dataKey="unitPrice" stroke="var(--chart-1)" strokeWidth={3}/></LineChart></ResponsiveContainer></div> : <EmptyState title="داده کافی نیست" body="برای این کالا در بازه انتخابی حداقل دو قیمت لازم است."/>}</section>
+      <section className="panel">
+        <div className="panel-head"><div><h2>تورم دسته‌ها</h2><p>تغییر مرکب کالاهای هر دسته بر اساس سهم هزینه در بازهٔ انتخابی</p></div></div>
+        {catInflation.length ? <div className="table-wrap"><table className="insight-table compact-insight-table">
+          <thead><tr><th>دسته‌بندی</th><th>تغییر قیمت</th><th>تعداد کالا</th></tr></thead>
+          <tbody>{catInflation.map(row => <tr key={row.category}>
+            <td>{row.category}</td><td><span className={'delta ' + pctTone(row.change)}>{formatPct(row.change)}</span></td><td>{faNumber.format(row.products)}</td>
+          </tr>)}</tbody>
+        </table></div> : <EmptyState title="دادهٔ کافی نیست" body="حداقل دو قیمت برای کالاهای یک دسته ثبت کنید."/>}
+      </section>
 
-      <section className="panel"><div className="panel-head"><div><h2>تورم دسته‌ها</h2><p>تغییر مرکب کالاهای هر دسته بر اساس سهم هزینه در بازه انتخابی</p></div></div>{catInflation.length ? <div className="chart-md"><ResponsiveContainer width="100%" height="100%"><BarChart data={catInflation}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="category" tickMargin={10} minTickGap={18}/><YAxis orientation="right" tickMargin={8} tickFormatter={value => `${faDecimal.format(Number(value))}٪`}/><Tooltip content={<ChartTooltip valueKey="change" suffix="٪"/>}/><Bar dataKey="change" fill="var(--chart-2)" radius={[7, 7, 0, 0]}/></BarChart></ResponsiveContainer></div> : <EmptyState title="داده کافی نیست" body="حداقل دو قیمت برای چند کالا ثبت کنید."/>}</section>
+      <section className="panel">
+        <div className="panel-head"><div><h2>نوسان قیمت کالاها</h2><p>شدت متوسط تغییر میان ثبت‌های متوالی؛ عدد بیشتر یعنی قیمت ناپایدارتر</p></div></div>
+        {volatility.length ? <div className="table-wrap"><table className="insight-table compact-insight-table">
+          <thead><tr><th>کالا</th><th>نوسان</th><th>تعداد ثبت</th></tr></thead>
+          <tbody>{volatility.map(row => <tr key={row.name}>
+            <td>{row.name}</td><td><strong className="table-primary-number">{formatPct(row.volatility)}</strong></td><td>{faNumber.format(row.count)}</td>
+          </tr>)}</tbody>
+        </table></div> : <EmptyState title="دادهٔ کافی نیست" body="برای سنجش نوسان به چند ثبت متوالی نیاز است."/>}
+      </section>
 
-      <section className="panel"><div className="panel-head"><div><h2>نوسان قیمت کالاها</h2><p>شدت متوسط تغییر بین ثبت‌های متوالی؛ عدد بیشتر یعنی قیمت ناپایدارتر</p></div></div>{volatility.length ? <div className="chart-md"><ResponsiveContainer width="100%" height="100%"><BarChart data={volatility} layout="vertical"><CartesianGrid strokeDasharray="4 4" horizontal={false}/><XAxis type="number" tickFormatter={value => `${faDecimal.format(Number(value))}٪`}/><YAxis type="category" dataKey="name" width={104}/><Tooltip content={<ChartTooltip valueKey="volatility" suffix="٪"/>}/><Bar dataKey="volatility" fill="var(--chart-3)" radius={[5, 5, 5, 5]}/></BarChart></ResponsiveContainer></div> : <EmptyState title="داده کافی نیست" body="برای سنجش نوسان به چند ثبت متوالی نیاز است."/>}</section>
-
-      <section className="panel"><div className="panel-head"><div><h2>مقایسه فروشگاه‌ها</h2><p>میانگین وزنی قیمت {selectedProduct?.name ?? 'کالای انتخابی'} در هر فروشگاه</p></div>{bestStore ? <Badge tone="success">کمترین: {bestStore.store}</Badge> : null}</div>{storeData.length ? <div className="chart-md"><ResponsiveContainer width="100%" height="100%"><BarChart data={storeData}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="store" tickMargin={10} minTickGap={18}/><YAxis orientation="right" tickMargin={8} tickFormatter={value => faNumber.format(Number(value))} width={76}/><Tooltip content={<ChartTooltip valueKey="avg" isMoney currency={settings.currency} compactMoney={settings.compactNumbers}/>}/><Bar dataKey="avg" fill="var(--chart-4)" radius={[7, 7, 0, 0]}/></BarChart></ResponsiveContainer></div> : <EmptyState title="فروشگاهی ثبت نشده" body="هنگام ثبت قیمت نام فروشگاه را وارد کنید تا این مقایسه ساخته شود."/>}</section>
-
-      
+      <section className="panel analysis-table-wide">
+        <div className="panel-head"><div><h2>مقایسهٔ فروشگاه‌ها</h2><p>میانگین وزنی قیمت {selectedProduct?.name ?? 'کالای انتخابی'} در هر فروشگاه</p></div>{bestStore ? <Badge tone="success">کمترین میانگین: {bestStore.store}</Badge> : null}</div>
+        {storeData.length ? <div className="table-wrap"><table className="insight-table store-comparison-table">
+          <thead><tr><th>فروشگاه</th><th>میانگین وزنی</th><th>آخرین قیمت</th><th>کمینه تا بیشینه</th><th>تعداد ثبت</th></tr></thead>
+          <tbody>{storeData.map(row => <tr key={row.store}>
+            <td>{row.store}</td><td><strong className="table-primary-number">{money(row.avg)}</strong></td><td>{money(row.latest)}</td><td>{money(row.min)} – {money(row.max)}</td><td>{faNumber.format(row.count)}</td>
+          </tr>)}</tbody>
+        </table></div> : <EmptyState title="فروشگاهی ثبت نشده" body="هنگام ثبت قیمت نام فروشگاه را وارد کنید تا این مقایسه ساخته شود."/>}
+      </section>
     </div>
   </>
 
