@@ -21,8 +21,7 @@ export interface CompositePoint {
   coveragePct: number
   hasData: boolean
   changePct: number | null
-  yearOverYearChangePct: number | null
-  yearOverYearMatched: number
+  yearToDateChangePct: number | null
 }
 
 export interface ProductPointToPointChange {
@@ -117,19 +116,6 @@ function monthKey(date: string) {
   return startOfPersianMonthISO(date)
 }
 
-function monthNumber(month: string) {
-  const parts = persianDateParts(month)
-  return parts ? parts.year * 12 + (parts.month - 1) : 0
-}
-
-function previousMonth(month: string) {
-  return shiftPersianMonthISO(month, -1)
-}
-
-function inclusiveMonthCount(from: string, to: string) {
-  return Math.max(1, monthNumber(to) - monthNumber(from) + 1)
-}
-
 function buildMonthlyData(purchases: Purchase[]) {
   const priceBuckets = new Map<string, Map<string, number[]>>()
   const monthlySpend = new Map<string, Map<string, number>>()
@@ -166,25 +152,10 @@ function buildMonthlyData(purchases: Purchase[]) {
 }
 
 /**
- * Automatic basket weight based on prior observed spending.
- *
- * We use average monthly spend from the product's first observed purchase up to
- * the month before the current comparison. Spreading spend over elapsed calendar
- * months prevents a single bulk purchase from permanently dominating the index,
- * while frequently purchased/high-spend items naturally receive more influence.
+ * Builds a personal price index. Within each month, each comparable product is
+ * weighted by its share of that month's recorded spending. Monthly changes are
+ * chained to show cumulative inflation from the beginning of each Persian year.
  */
-function historicalMonthlySpendWeight(
-  productId: string,
-  currentMonth: string,
-  spendTotals: Map<string, number>,
-  firstSpendMonth: Map<string, string>
-) {
-  const total = spendTotals.get(productId) ?? 0
-  const firstMonth = firstSpendMonth.get(productId)
-  if (!firstMonth || !isValidSpend(total)) return 1
-  return total / inclusiveMonthCount(firstMonth, previousMonth(currentMonth))
-}
-
 export function buildCompositeIndex(purchases: Purchase[], throughMonth?: string): CompositePoint[] {
   const { monthlyPrices, monthlySpend } = buildMonthlyData(purchases)
   const observedMonths = [...monthlyPrices.keys()].sort()
@@ -198,44 +169,34 @@ export function buildCompositeIndex(purchases: Purchase[], throughMonth?: string
   }
 
   const lastKnown = new Map<string, number>()
-  const historicalSpendTotals = new Map<string, number>()
-  const firstSpendMonth = new Map<string, string>()
   let index = 100
+  let currentYear: number | null = null
+  let yearStartIndex: number | null = null
+  let yearHasComparable = false
   const result: CompositePoint[] = []
 
   for (const [monthIndex, month] of months.entries()) {
     const current = monthlyPrices.get(month) ?? new Map<string, number>()
+    const monthSpend = monthlySpend.get(month) ?? new Map<string, number>()
     const indexBeforeMonth = index
-    const eligibleProductIds = [...lastKnown.keys()]
-    const comparable: Array<{ ratio: number; weight: number }> = []
-    const previousYearPrices = monthlyPrices.get(shiftPersianMonthISO(month, -12))
-    const yearOverYearComparable: Array<{ ratio: number; weight: number }> = []
+    const parts = persianDateParts(month)
 
-    if (previousYearPrices) {
-      for (const [productId, currentPrice] of current) {
-        const previousYearPrice = previousYearPrices.get(productId)
-        if (previousYearPrice && isValidPrice(previousYearPrice) && isValidPrice(currentPrice)) {
-          yearOverYearComparable.push({
-            ratio: currentPrice / previousYearPrice,
-            weight: historicalMonthlySpendWeight(productId, month, historicalSpendTotals, firstSpendMonth)
-          })
-        }
-      }
+    if (parts && parts.year !== currentYear) {
+      currentYear = parts.year
+      yearStartIndex = parts.month === 1 ? index : null
+      yearHasComparable = false
     }
 
-    const yearOverYearWeight = yearOverYearComparable.reduce((sum, item) => sum + item.weight, 0)
-    const yearOverYearLogRatio = yearOverYearWeight
-      ? yearOverYearComparable.reduce((sum, item) => sum + Math.log(item.ratio) * item.weight, 0) / yearOverYearWeight
-      : null
-    const yearOverYearChangePct = yearOverYearLogRatio == null ? null : (Math.exp(yearOverYearLogRatio) - 1) * 100
+    const weightFor = (productId: string) => {
+      const spend = monthSpend.get(productId) ?? 0
+      return isValidSpend(spend) ? spend : 1
+    }
+    const comparable: Array<{ ratio: number; weight: number }> = []
 
     for (const [productId, currentPrice] of current) {
       const previousPrice = lastKnown.get(productId)
       if (previousPrice && isValidPrice(previousPrice) && isValidPrice(currentPrice)) {
-        comparable.push({
-          ratio: currentPrice / previousPrice,
-          weight: historicalMonthlySpendWeight(productId, month, historicalSpendTotals, firstSpendMonth)
-        })
+        comparable.push({ ratio: currentPrice / previousPrice, weight: weightFor(productId) })
       }
     }
 
@@ -243,36 +204,27 @@ export function buildCompositeIndex(purchases: Purchase[], throughMonth?: string
       const totalWeight = comparable.reduce((sum, item) => sum + item.weight, 0)
       const weightedLogRatio = comparable.reduce((sum, item) => sum + Math.log(item.ratio) * item.weight, 0) / totalWeight
       index *= Math.exp(weightedLogRatio)
+      yearHasComparable = true
     }
 
-    const eligibleWeight = eligibleProductIds.reduce(
-      (sum, productId) => sum + historicalMonthlySpendWeight(productId, month, historicalSpendTotals, firstSpendMonth),
-      0
-    )
-    const freshWeight = comparable.reduce((sum, item) => sum + item.weight, 0)
+    const totalMonthWeight = [...current.keys()].reduce((sum, productId) => sum + weightFor(productId), 0)
+    const comparedMonthWeight = comparable.reduce((sum, item) => sum + item.weight, 0)
 
     result.push({
       month,
       index,
       matched: monthIndex === 0 ? 0 : comparable.length,
-      coveragePct: monthIndex === 0 ? 0 : eligibleWeight ? Math.min(100, (freshWeight / eligibleWeight) * 100) : 0,
+      coveragePct: monthIndex === 0 ? 0 : totalMonthWeight ? Math.min(100, (comparedMonthWeight / totalMonthWeight) * 100) : 0,
       hasData: current.size > 0,
       changePct: comparable.length ? ((index / indexBeforeMonth) - 1) * 100 : null,
-      yearOverYearChangePct,
-      yearOverYearMatched: yearOverYearComparable.length
+      yearToDateChangePct: yearStartIndex != null && yearHasComparable ? ((index / yearStartIndex) - 1) * 100 : null
     })
 
     for (const [productId, currentPrice] of current) lastKnown.set(productId, currentPrice)
-
-    for (const [productId, spend] of monthlySpend.get(month) ?? []) {
-      if (!firstSpendMonth.has(productId)) firstSpendMonth.set(productId, month)
-      historicalSpendTotals.set(productId, (historicalSpendTotals.get(productId) ?? 0) + spend)
-    }
   }
 
   return result
 }
-
 
 export function buildPointToPointChanges(products: Product[], purchases: Purchase[], month?: string): ProductPointToPointChange[] {
   if (!month) return []
