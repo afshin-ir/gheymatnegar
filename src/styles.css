@@ -951,3 +951,11 @@ svg.lucide-wifi-off { color: var(--icon-yellow); }
 .sidebar nav button:nth-child(4) svg,
 .mobile-nav button:nth-child(4) svg { color: var(--icon-purple); }
 
+
+
+/* Clear annual change and coverage details */
+.dashboard-annual-inflation-table th:nth-child(1) { width: 40%; }
+.dashboard-annual-inflation-table th:nth-child(2) { width: 60%; }
+.dashboard-coverage-note { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; line-height: 1.7; font-weight: 650; }
+.dashboard-coverage-note.is-limited strong { display: inline-block; margin-inline-end: 3px; padding: 1px 6px; color: #815f12; background: #fff3c4; border: 1px solid #f2df9a; border-radius: 999px; font-size: 10px; font-weight: 800; white-space: nowrap; }
+:root[data-theme='dark'] .dashboard-coverage-note.is-limited strong { color: #f3d36f; background: color-mix(in srgb, #d7a827 17%, var(--surface)); border-color: color-mix(in srgb, #d7a827 34%, var(--border)); }
