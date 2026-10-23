@@ -268,12 +268,7 @@ export default function App() {
   const lastBackupAt = settings.lastBackupAt ? new Date(settings.lastBackupAt) : null
   const backupAgeDays = lastBackupAt && !Number.isNaN(lastBackupAt.getTime()) ? Math.floor((Date.now() - lastBackupAt.getTime()) / 86_400_000) : null
   const backupDue = purchases.length >= 10 && (backupAgeDays == null || backupAgeDays >= BACKUP_REMINDER_DAYS)
-  const dashboardSummary = [
-    { label: 'شاخص سبد قیمت', value: latestComposite ? faDecimal.format(latestComposite.index) : '—', detail: totalIndexChange == null ? 'حداقل دو ماه داده لازم است' : `${formatPct(totalIndexChange)} از اولین ماه`, sortValue: latestComposite?.index ?? null, tone: pctTone(totalIndexChange) },
-    { label: 'آخرین تغییر قابل‌مقایسه', value: latestComparableComposite ? formatPct(latestComparableComposite.changePct) : '—', detail: latestComparableComposite ? formatMonth(latestComparableComposite.month) : 'برای مقایسه، ثبت قیمت تازه لازم است', sortValue: latestComparableComposite?.changePct ?? null, tone: pctTone(latestComparableComposite?.changePct ?? null) },
-    { label: 'کالاهای فعال', value: faNumber.format(activeProducts.length), detail: 'در سبد قیمت شما', sortValue: activeProducts.length, tone: 'neutral' },
-    { label: 'ثبت‌های قیمت', value: faNumber.format(filteredPurchases.length), detail: 'در بازهٔ انتخاب‌شده', sortValue: filteredPurchases.length, tone: 'neutral' }
-  ]
+
 
   if (loading) return <div className="app-loading" role="status" aria-live="polite"><div className="loading-mark"><LineIcon size={28}/></div><strong>قیمت‌نگار</strong><span>در حال آماده‌سازی داده‌های محلی…</span><div className="loading-bar"><i/></div></div>
 
@@ -430,24 +425,6 @@ export default function App() {
         <div><strong>وقت یک پشتیبان تازه است</strong><span>{backupAgeDays == null ? 'هنوز پشتیبان کامل ثبت نشده است.' : `آخرین پشتیبان کامل حدود ${faNumber.format(backupAgeDays)} روز پیش ثبت شده است.`} داده محلی را دوره‌ای خروجی بگیرید.</span></div>
         <button className="button secondary small" onClick={() => setPage('data')}>رفتن به پشتیبان</button>
       </section> : null}
-
-      <section className="panel dashboard-summary-panel">
-        <div className="panel-head"><div><h2>خلاصهٔ سبد قیمت</h2><p>شاخص و وضعیت ثبت قیمت‌ها در بازهٔ انتخاب‌شده</p></div></div>
-        <div className="table-wrap insight-table-wrap"><table className="insight-table dashboard-summary-table">
-          <thead><tr>
-            <TableSortHeader table="summary" column="label" label="شاخص" sort={tableSorts.summary} onSort={toggleTableSort}/>
-            <TableSortHeader table="summary" column="value" label="مقدار" sort={tableSorts.summary} onSort={toggleTableSort}/>
-            <TableSortHeader table="summary" column="detail" label="جزئیات" sort={tableSorts.summary} onSort={toggleTableSort}/>
-          </tr></thead>
-          <tbody>{sortTableRows('summary', dashboardSummary, {
-            label: row => row.label, value: row => row.sortValue, detail: row => row.detail
-          }).map(row => <tr key={row.label}>
-            <td><strong>{row.label}</strong></td>
-            <td><strong className={`dashboard-summary-value tone-${row.tone}`}>{row.value}</strong></td>
-            <td className="dashboard-summary-detail">{row.detail}</td>
-          </tr>)}</tbody>
-        </table></div>
-      </section>
 
       <div className="dashboard-grid">
         <section className="panel panel-wide">
