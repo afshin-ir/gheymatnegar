@@ -494,7 +494,7 @@ export default function App() {
 
       <section className="panel">
         <div className="panel-head"><div><h2>مقایسهٔ قیمت کالاها</h2><p>قیمت آغاز و پایان، دامنهٔ قیمت و تغییر در بازهٔ انتخاب‌شده</p></div><button className="text-button" onClick={() => setPage('products')}>فهرست کالاها <ChevronLeft size={16}/></button></div>
-        {comparisonStats.length ? <div className={`table-wrap comparison-table-wrap ${comparisonExpanded ? 'expanded' : ''}`}><table className="comparison-table"><thead><tr>
+        {comparisonStats.length ? <><div className={`table-wrap comparison-table-wrap ${comparisonExpanded ? 'expanded' : ''}`}><table className="comparison-table"><thead><tr>
           <TableSortHeader table="comparison" column="name" label="کالا" sort={tableSorts.comparison} onSort={toggleTableSort}/>
           <TableSortHeader table="comparison" column="first" label="قیمت آغاز بازه" sort={tableSorts.comparison} onSort={toggleTableSort}/>
           <TableSortHeader table="comparison" column="latest" label="آخرین قیمت" sort={tableSorts.comparison} onSort={toggleTableSort}/>
@@ -514,7 +514,7 @@ export default function App() {
           <button type="button" className="table-more-button" aria-expanded={comparisonExpanded} onClick={() => setComparisonExpanded(value => !value)}>
             {comparisonExpanded ? 'نمایش ۱۰ کالای نخست' : `نمایش همهٔ ${faNumber.format(comparisonStats.length)} کالا`}
           </button>
-        </div> : null} : <EmptyState icon={<Activity size={24}/>} title="در این بازه قیمت ثبت نشده" body="بازه را تغییر دهید یا برای کالاها قیمت ثبت کنید." action={activeProducts.length ? <button className="button primary small" onClick={() => setPurchaseModal({ open: true })}><Plus size={17}/>ثبت قیمت</button> : undefined}/>}
+        </div> : null}</> : <EmptyState icon={<Activity size={24}/>} title="در این بازه قیمت ثبت نشده" body="بازه را تغییر دهید یا برای کالاها قیمت ثبت کنید." action={activeProducts.length ? <button className="button primary small" onClick={() => setPurchaseModal({ open: true })}><Plus size={17}/>ثبت قیمت</button> : undefined}/>}
       </section>
     </>}
   </>
