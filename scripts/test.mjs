@@ -78,20 +78,19 @@ assert.equal(extendedIndex.at(-1).hasData, false)
 assert.equal(extendedIndex.at(-1).changePct, null)
 assert.equal(extendedIndex.at(-1).index, extendedIndex.at(-2).index)
 
-const annualBasketIndex = analytics.buildCompositeIndex([
-  purchase('annual-prev', 'p1', '2025-08-25', 100),
-  purchase('annual-current', 'p1', '2026-08-25', 130),
+const yearToDateIndex = analytics.buildCompositeIndex([
+  purchase('ytd-start', 'p1', '2026-03-25', 100),
+  purchase('ytd-current', 'p1', '2026-04-25', 110),
 ])
-const annualBasketPoint = annualBasketIndex.at(-1)
-assert.equal(annualBasketPoint.month, '2026-08-23')
-assert.equal(annualBasketPoint.yearOverYearMatched, 1)
-assert.ok(Math.abs(annualBasketPoint.yearOverYearChangePct - 30) < 1e-9)
+const yearToDatePoint = yearToDateIndex.at(-1)
+assert.equal(yearToDatePoint.month, '2026-04-21')
+assert.ok(Math.abs(yearToDatePoint.changePct - 10) < 1e-9)
+assert.ok(Math.abs(yearToDatePoint.yearToDateChangePct - 10) < 1e-9)
 
-const noAnnualBasketMatch = analytics.buildCompositeIndex([
-  purchase('annual-current-only', 'p1', '2026-08-25', 130),
+const noYearStart = analytics.buildCompositeIndex([
+  purchase('ytd-late-start', 'p1', '2026-08-25', 130),
 ]).at(-1)
-assert.equal(noAnnualBasketMatch.yearOverYearMatched, 0)
-assert.equal(noAnnualBasketMatch.yearOverYearChangePct, null)
+assert.equal(noYearStart.yearToDateChangePct, null)
 
 
 const pointToPointProducts = [product('y1', 'قبض گاز'), product('y2', 'قبض آب')]
@@ -110,8 +109,8 @@ assert.deepEqual(analytics.buildPointToPointChanges(pointToPointProducts, [], un
 
 
 
-// Automatic basket weighting: a higher historical monthly spend should have
-// more influence than a low-spend item, without any manual product weight.
+// Personal basket weighting uses each product's share of that month's
+// recorded expenditure, without any manual product weight.
 const weightedPurchases = [
   purchase('w1', 'wp1', '2026-01-05', 100),
   purchase('w2', 'wp2', '2026-01-05', 100, undefined, 10),
@@ -120,7 +119,9 @@ const weightedPurchases = [
 ]
 const weightedIndex = analytics.buildCompositeIndex(weightedPurchases)
 assert.equal(weightedIndex.length, 2)
-assert.ok(weightedIndex[1].index > 106 && weightedIndex[1].index < 107)
+assert.ok(weightedIndex[1].index > 112 && weightedIndex[1].index < 113)
+assert.ok(Math.abs(weightedIndex[1].changePct - ((Math.pow(2, 1/6) - 1) * 100)) < 1e-9)
+assert.ok(Math.abs(weightedIndex[1].yearToDateChangePct - weightedIndex[1].changePct) < 1e-9)
 assert.equal(Math.round(weightedIndex[1].coveragePct), 100)
 
 const financialTransactions = [
