@@ -426,6 +426,7 @@ export default function App() {
       </section> : null}
 
       
+      <div className="dashboard-insight-pair">
       {pointToPointRows.length ? <section className="panel point-to-point-panel">
         <div className="panel-head">
           <div>
@@ -451,8 +452,7 @@ export default function App() {
         <div className="chart-note"><Info size={15}/><span>فقط کالاهایی نمایش داده می‌شوند که برای هر دو ماهِ هم‌نام قیمت ثبت شده باشد. درصد تغییر بر اساس میانهٔ قیمت‌های ثبت‌شده در این دو ماه محاسبه می‌شود.</span></div>
       </section> : null}
 
-      <div className="dashboard-grid dashboard-grid-single">
-        <section className="panel">
+      <section className="panel">
           <div className="panel-head">
             <div>
               <h2>شاخص سبد و تغییر قیمت</h2>
@@ -476,7 +476,6 @@ export default function App() {
           </table></div> : <EmptyState icon={<LineIcon size={24}/>} title="هنوز داده‌ای برای شاخص نداریم" body="با ثبت قیمت کالاها، مقادیر ماهانهٔ شاخص در این بخش نمایش داده می‌شوند."/>}
           <div className="chart-note"><Info size={15}/><span>ماه پایه با شاخص ۱۰۰ نمایش داده می‌شود؛ پس از آن فقط ماه‌هایی می‌آیند که دست‌کم یک کالای قابل‌مقایسه دارند. ماه‌های بدون مقایسه، تورم صفر محسوب نمی‌شوند.</span></div>
         </section>
-
       </div>
 
       <section className="panel">
