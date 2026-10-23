@@ -246,7 +246,8 @@ export default function App() {
     return months.at(-1) ?? null
   }, [filteredPurchases])
   const pointToPointRows = useMemo(
-    () => buildPointToPointChanges(activeProducts, purchases, pointToPointMonth ?? undefined),
+    () => buildPointToPointChanges(activeProducts, purchases, pointToPointMonth ?? undefined)
+      .filter(row => row.previousPrice != null && row.changePct != null),
     [activeProducts, purchases, pointToPointMonth]
   )
   const sortedPointToPointRows = sortTableRows('pointToPoint', pointToPointRows, {
@@ -425,15 +426,15 @@ export default function App() {
       </section> : null}
 
       
-      <section className="panel point-to-point-panel">
+      {pointToPointRows.length ? <section className="panel point-to-point-panel">
         <div className="panel-head">
           <div>
             <h2>تورم نقطه‌به‌نقطهٔ کالاها</h2>
             <p>قیمت هر کالا در آخرین ماهِ بازه با همان ماه در سال گذشته مقایسه می‌شود</p>
           </div>
-          {pointToPointMonth ? <Badge tone="info">{formatMonth(pointToPointMonth)} در برابر {formatMonth(shiftPersianMonthISO(pointToPointMonth, -12))}</Badge> : <Badge tone="default">داده‌ای نداریم</Badge>}
+          <Badge tone="info">{formatMonth(pointToPointMonth!)} در برابر {formatMonth(shiftPersianMonthISO(pointToPointMonth!, -12))}</Badge>
         </div>
-        {pointToPointRows.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table point-to-point-table">
+        <div className="table-wrap insight-table-wrap"><table className="insight-table point-to-point-table">
           <thead><tr>
             <TableSortHeader table="pointToPoint" column="name" label="کالا" sort={tableSorts.pointToPoint} onSort={toggleTableSort}/>
             <TableSortHeader table="pointToPoint" column="previous" label={`قیمت سال قبل (${settings.currency})`} sort={tableSorts.pointToPoint} onSort={toggleTableSort}/>
@@ -442,13 +443,13 @@ export default function App() {
           </tr></thead>
           <tbody>{sortedPointToPointRows.map(row => <tr key={row.product.id} className="clickable" tabIndex={0} role="button" aria-label={'مشاهدهٔ سابقهٔ قیمت ' + row.product.name} onClick={() => { selectProduct(row.product.id); setPage('products') }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectProduct(row.product.id); setPage('products') } }}>
             <td><strong>{row.product.name}</strong><small>{row.product.category} · {row.product.unit}</small></td>
-            <td>{row.previousPrice == null ? <span className="table-muted">سابقهٔ هم‌ماه ندارد</span> : moneyValue(row.previousPrice)}</td>
+            <td>{moneyValue(row.previousPrice!)}</td>
             <td><strong className="table-primary-number">{moneyValue(row.currentPrice)}</strong></td>
-            <td>{row.changePct == null ? <span className="table-muted">قابل محاسبه نیست</span> : <span className={`delta ${pctTone(row.changePct)}`}>{row.changePct === 0 ? <Minus size={15}/> : row.changePct > 0 ? <TrendingUp size={15}/> : <TrendingDown size={15}/>} {formatPct(row.changePct)}</span>}</td>
+            <td><span className={`delta ${pctTone(row.changePct)}`}>{row.changePct === 0 ? <Minus size={15}/> : row.changePct > 0 ? <TrendingUp size={15}/> : <TrendingDown size={15}/>} {formatPct(row.changePct!)}</span></td>
           </tr>)}</tbody>
-        </table></div> : <EmptyState icon={<LineIcon size={24}/>} title={pointToPointMonth ? 'در این ماه قیمتی ثبت نشده' : 'هنوز داده‌ای برای مقایسه نداریم'} body="برای محاسبهٔ تغییر نقطه‌به‌نقطه، قیمت یک کالا باید هم در ماه انتخابی و هم در همان ماهِ سال قبل ثبت شده باشد."/>}
-        {pointToPointRows.length ? <div className="chart-note"><Info size={15}/><span>درصد هر کالا از میانهٔ قیمت‌های ثبت‌شده در دو ماه هم‌نام محاسبه می‌شود. کالاهایی که سابقهٔ هم‌ماه پارسال ندارند، تا زمان ثبت آن قابل مقایسه نیستند.</span></div> : null}
-      </section>
+        </table></div>
+        <div className="chart-note"><Info size={15}/><span>فقط کالاهایی نمایش داده می‌شوند که برای هر دو ماهِ هم‌نام قیمت ثبت شده باشد. درصد تغییر بر اساس میانهٔ قیمت‌های ثبت‌شده در این دو ماه محاسبه می‌شود.</span></div>
+      </section> : null}
 
       <div className="dashboard-grid dashboard-grid-single">
         <section className="panel">
