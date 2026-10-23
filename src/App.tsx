@@ -32,6 +32,21 @@ interface BeforeInstallPromptEvent extends Event {
 
 function pctTone(value: number | null) { return value == null || value === 0 ? 'neutral' : value > 0 ? 'up' : 'down' }
 
+type TableSortState = { column: string; direction: 'asc'|'desc' }
+function TableSortHeader({ label, table, column, sort, onSort, initialDirection = 'asc' }: {
+  label: string; table: string; column: string; sort?: TableSortState;
+  onSort: (table: string, column: string, initialDirection: 'asc'|'desc') => void;
+  initialDirection?: 'asc'|'desc'
+}) {
+  const active = sort?.column === column
+  const direction = active ? sort.direction : null
+  return <th aria-sort={direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : 'none'}>
+    <button type="button" className={`table-sort ${active ? 'is-active' : ''}`} onClick={() => onSort(table, column, initialDirection)}>
+      {label}<span aria-hidden="true">{direction === 'asc' ? '↑' : direction === 'desc' ? '↓' : '↕'}</span>
+    </button>
+  </th>
+}
+
 export default function App() {
   const productsLive = useLiveQuery(() => db.products.toArray())
   const storesLive = useLiveQuery(() => db.stores.toArray())
@@ -55,8 +70,28 @@ export default function App() {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('همه')
   const [sortBy, setSortBy] = useState<'recent'|'change'|'name'>('recent')
-  const [comparisonSort, setComparisonSort] = useState<'recent'|'change'|'name'>('change')
-  const [comparisonDirection, setComparisonDirection] = useState<'asc'|'desc'>('desc')
+  const [tableSorts, setTableSorts] = useState<Record<string, TableSortState>>({ comparison: { column: 'change', direction: 'desc' } })
+  const toggleTableSort = (table: string, column: string, initialDirection: 'asc'|'desc' = 'asc') => {
+    setTableSorts(current => {
+      const previous = current[table]
+      const direction = previous?.column === column ? previous.direction === 'asc' ? 'desc' : 'asc' : initialDirection
+      return { ...current, [table]: { column, direction } }
+    })
+  }
+  const sortTableRows = <T,>(table: string, rows: T[], selectors: Record<string, (row: T) => string|number|null|undefined>) => {
+    const sort = tableSorts[table]
+    const selector = sort ? selectors[sort.column] : undefined
+    if (!sort || !selector) return rows
+    const collator = new Intl.Collator('fa', { numeric: true, sensitivity: 'base' })
+    return rows.slice().sort((left, right) => {
+      const a = selector(left), b = selector(right)
+      if (a == null && b == null) return 0
+      if (a == null) return 1
+      if (b == null) return -1
+      const order = typeof a === 'number' && typeof b === 'number' ? a - b : collator.compare(String(a), String(b))
+      return sort.direction === 'asc' ? order : -order
+    })
+  }
   const [rangeFrom, setRangeFrom] = useState('')
   const [rangeTo, setRangeTo] = useState(todayISO())
   const [backupPassword, setBackupPassword] = useState('')
@@ -217,18 +252,15 @@ export default function App() {
   const recentStats = useMemo(() => stats
     .filter(stat => stat.count > 0 && !stat.product.archived)
     .sort((a, b) => (b.lastDate ?? '').localeCompare(a.lastDate ?? '')), [stats])
-  const comparisonStats = useMemo(() => recentStats.slice().sort((a, b) => {
-    let order = 0
-    if (comparisonSort === 'name') order = a.product.name.localeCompare(b.product.name, 'fa')
-    else if (comparisonSort === 'recent') order = (a.lastDate ?? '').localeCompare(b.lastDate ?? '')
-    else {
-      if (a.changePct == null && b.changePct == null) return 0
-      if (a.changePct == null) return 1
-      if (b.changePct == null) return -1
-      order = a.changePct - b.changePct
-    }
-    return comparisonDirection === 'asc' ? order : -order
-  }).slice(0, 20), [recentStats, comparisonSort, comparisonDirection])
+  const comparisonStats = useMemo(() => sortTableRows('comparison', recentStats, {
+    name: stat => stat.product.name,
+    first: stat => stat.first,
+    latest: stat => stat.latest,
+    range: stat => stat.min == null || stat.max == null ? null : stat.max - stat.min,
+    change: stat => stat.changePct,
+    count: stat => stat.count,
+    recent: stat => stat.lastDate
+  }).slice(0, 20), [recentStats, tableSorts])
   const money = (value: number, compact = settings.compactNumbers) => formatMoney(value, settings.currency, compact)
   const isDark = settings.theme === 'dark' || (settings.theme === 'system' && systemDark)
   const lastBackupAt = settings.lastBackupAt ? new Date(settings.lastBackupAt) : null
@@ -311,10 +343,6 @@ export default function App() {
 
   async function setTheme(theme: ThemeMode) { await db.settings.put({...settings, theme}) }
   function applyQuickRange(days?: number) { setRangeTo(todayISO()); setRangeFrom(days ? lastNDaysISO(days) : '') }
-  function toggleComparisonSort(key: 'recent'|'change'|'name') {
-    if (comparisonSort === key) setComparisonDirection(current => current === 'asc' ? 'desc' : 'asc')
-    else { setComparisonSort(key); setComparisonDirection(key === 'name' ? 'asc' : 'desc') }
-  }
   const renderRangeFilter = () => <section className="panel filter-panel range-panel">
     <div className="panel-head"><div><h2>بازهٔ بررسی</h2><p>این بازه در داشبورد، فهرست کالاها و تحلیل‌ها یکسان اعمال می‌شود؛ شاخص روی نخستین ماه داده‌دار بازه پایه‌گذاری می‌شود.</p></div></div>
     <div className="filter-grid">
@@ -414,8 +442,12 @@ export default function App() {
           {latestComposite && !latestComposite.hasData ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمتی ثبت نشده؛ شاخص از آخرین مقدار موجود ادامه پیدا می‌کند و این ماه تورم صفر محسوب نمی‌شود.</span></div> : null}
           {latestComposite?.hasData && latestComposite.matched === 0 ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمت قابل‌مقایسه‌ای ثبت نشده؛ برای محاسبهٔ تغییر، قیمت کالاهای دارای سابقه را دوباره ثبت کنید.</span></div> : null}
           {observedIndexMonths.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table dashboard-index-table">
-            <thead><tr><th>ماه</th><th>شاخص سبد</th><th>تغییر شاخص</th></tr></thead>
-            <tbody>{observedIndexMonths.map((point, index) => <tr key={point.month}>
+            <thead><tr>
+              <TableSortHeader table="index" column="month" label="ماه" sort={tableSorts.index} onSort={toggleTableSort}/>
+              <TableSortHeader table="index" column="index" label="شاخص سبد" sort={tableSorts.index} onSort={toggleTableSort}/>
+              <TableSortHeader table="index" column="change" label="تغییر شاخص" sort={tableSorts.index} onSort={toggleTableSort}/>
+            </tr></thead>
+            <tbody>{sortTableRows('index', observedIndexMonths, { month: point => point.month, index: point => point.index, change: point => point.changePct }).map((point, index) => <tr key={point.month}>
               <td>{formatMonth(point.month)}</td>
               <td><strong className="table-primary-number">{faDecimal.format(point.index)}</strong></td>
               <td>{point.changePct == null ? <span className="table-muted">{index === 0 ? 'مبنای شاخص' : 'بدون مقایسه'}</span> : <span className={'delta ' + pctTone(point.changePct)}>{formatPct(point.changePct)}</span>}</td>
@@ -427,8 +459,12 @@ export default function App() {
         <section className="panel">
           <div className="panel-head"><div><h2>بیشترین افزایش</h2><p>از اولین تا آخرین ثبت هر کالا</p></div></div>
           {topChanges.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table dashboard-increase-table">
-            <thead><tr><th>رتبه</th><th>کالا</th><th>افزایش</th></tr></thead>
-            <tbody>{topChanges.map((item, index) => <tr key={item.name}>
+            <thead><tr>
+              <TableSortHeader table="increase" column="rank" label="رتبه" sort={tableSorts.increase} onSort={toggleTableSort}/>
+              <TableSortHeader table="increase" column="name" label="کالا" sort={tableSorts.increase} onSort={toggleTableSort}/>
+              <TableSortHeader table="increase" column="change" label="افزایش" sort={tableSorts.increase} onSort={toggleTableSort} initialDirection="desc"/>
+            </tr></thead>
+            <tbody>{sortTableRows('increase', topChanges.map((item, rank) => ({ ...item, rank: rank + 1 })), { rank: item => item.rank, name: item => item.name, change: item => item.change }).map((item, index) => <tr key={item.name}>
               <td><span className="table-rank">{faNumber.format(index + 1)}</span></td>
               <td>{item.name}</td>
               <td><span className="delta up">{formatPct(item.change)}</span></td>
@@ -440,11 +476,13 @@ export default function App() {
       <section className="panel">
         <div className="panel-head"><div><h2>مقایسهٔ قیمت کالاها</h2><p>قیمت آغاز و پایان، دامنهٔ قیمت و تغییر در بازهٔ انتخاب‌شده</p></div><button className="text-button" onClick={() => setPage('products')}>فهرست کالاها <ChevronLeft size={16}/></button></div>
         {comparisonStats.length ? <div className="table-wrap"><table className="comparison-table"><thead><tr>
-          <th aria-sort={comparisonSort === 'name' ? comparisonDirection === 'asc' ? 'ascending' : 'descending' : 'none'}><button className="table-sort" onClick={() => toggleComparisonSort('name')}>کالا <span>{comparisonSort === 'name' ? comparisonDirection === 'asc' ? '▲' : '▼' : '↕'}</span></button></th>
-          <th>قیمت آغاز بازه</th><th>آخرین قیمت</th><th>کمینه تا بیشینه</th>
-          <th aria-sort={comparisonSort === 'change' ? comparisonDirection === 'asc' ? 'ascending' : 'descending' : 'none'}><button className="table-sort" onClick={() => toggleComparisonSort('change')}>تغییر بازه <span>{comparisonSort === 'change' ? comparisonDirection === 'asc' ? '▲' : '▼' : '↕'}</span></button></th>
-          <th>تعداد ثبت</th>
-          <th aria-sort={comparisonSort === 'recent' ? comparisonDirection === 'asc' ? 'ascending' : 'descending' : 'none'}><button className="table-sort" onClick={() => toggleComparisonSort('recent')}>آخرین ثبت <span>{comparisonSort === 'recent' ? comparisonDirection === 'asc' ? '▲' : '▼' : '↕'}</span></button></th>
+          <TableSortHeader table="comparison" column="name" label="کالا" sort={tableSorts.comparison} onSort={toggleTableSort}/>
+          <TableSortHeader table="comparison" column="first" label="قیمت آغاز بازه" sort={tableSorts.comparison} onSort={toggleTableSort}/>
+          <TableSortHeader table="comparison" column="latest" label="آخرین قیمت" sort={tableSorts.comparison} onSort={toggleTableSort}/>
+          <TableSortHeader table="comparison" column="range" label="کمینه تا بیشینه" sort={tableSorts.comparison} onSort={toggleTableSort}/>
+          <TableSortHeader table="comparison" column="change" label="تغییر بازه" sort={tableSorts.comparison} onSort={toggleTableSort} initialDirection="desc"/>
+          <TableSortHeader table="comparison" column="count" label="تعداد ثبت" sort={tableSorts.comparison} onSort={toggleTableSort}/>
+          <TableSortHeader table="comparison" column="recent" label="آخرین ثبت" sort={tableSorts.comparison} onSort={toggleTableSort} initialDirection="desc"/>
         </tr></thead><tbody>{comparisonStats.map(stat => <tr key={stat.product.id} className="clickable" tabIndex={0} role="button" onClick={() => { selectProduct(stat.product.id); setPage('products') }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectProduct(stat.product.id); setPage('products') } }}>
           <td data-label="کالا"><strong>{stat.product.name}</strong><small>{stat.product.category} · {stat.product.unit}</small></td>
           <td data-label="قیمت آغاز بازه">{stat.first == null ? '—' : money(stat.first)}</td>
@@ -521,8 +559,18 @@ export default function App() {
       <section className="panel analysis-table-wide">
         <div className="panel-head"><div><h2>روند قیمت {selectedProduct?.name ?? ''}</h2><p>قیمت واحد مؤثر و تغییر آن نسبت به ثبت پیشین در بازهٔ انتخاب‌شده</p></div></div>
         {analyticsHistory.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table price-history-table">
-          <thead><tr><th>تاریخ ثبت</th><th>قیمت هر واحد</th><th>تغییر با ثبت پیشین</th><th>فروشگاه</th></tr></thead>
-          <tbody>{analyticsHistory.slice().reverse().map(({ purchase, changePct }) => <tr key={purchase.id}>
+          <thead><tr>
+            <TableSortHeader table="history" column="date" label="تاریخ ثبت" sort={tableSorts.history} onSort={toggleTableSort} initialDirection="desc"/>
+            <TableSortHeader table="history" column="price" label="قیمت هر واحد" sort={tableSorts.history} onSort={toggleTableSort}/>
+            <TableSortHeader table="history" column="change" label="تغییر با ثبت پیشین" sort={tableSorts.history} onSort={toggleTableSort}/>
+            <TableSortHeader table="history" column="store" label="فروشگاه" sort={tableSorts.history} onSort={toggleTableSort}/>
+          </tr></thead>
+          <tbody>{sortTableRows('history', analyticsHistory.slice().reverse(), {
+            date: row => row.purchase.date,
+            price: row => row.purchase.unitPrice,
+            change: row => row.changePct,
+            store: row => row.purchase.storeId ? stores.find(store => store.id === row.purchase.storeId)?.name ?? 'فروشگاه حذف‌شده' : 'بدون فروشگاه'
+          }).map(({ purchase, changePct }) => <tr key={purchase.id}>
             <td>{formatDate(purchase.date)}</td>
             <td><strong className="table-primary-number">{money(purchase.unitPrice)}</strong></td>
             <td>{changePct == null ? <span className="table-muted">مبنای بازه</span> : <span className={'delta ' + pctTone(changePct)}>{formatPct(changePct)}</span>}</td>
@@ -534,8 +582,12 @@ export default function App() {
       <section className="panel">
         <div className="panel-head"><div><h2>تورم دسته‌ها</h2><p>تغییر مرکب کالاهای هر دسته بر اساس سهم هزینه در بازهٔ انتخابی</p></div></div>
         {catInflation.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table compact-insight-table">
-          <thead><tr><th>دسته‌بندی</th><th>تغییر قیمت</th><th>تعداد کالا</th></tr></thead>
-          <tbody>{catInflation.map(row => <tr key={row.category}>
+          <thead><tr>
+            <TableSortHeader table="category" column="category" label="دسته‌بندی" sort={tableSorts.category} onSort={toggleTableSort}/>
+            <TableSortHeader table="category" column="change" label="تغییر قیمت" sort={tableSorts.category} onSort={toggleTableSort} initialDirection="desc"/>
+            <TableSortHeader table="category" column="products" label="تعداد کالا" sort={tableSorts.category} onSort={toggleTableSort}/>
+          </tr></thead>
+          <tbody>{sortTableRows('category', catInflation, { category: row => row.category, change: row => row.change, products: row => row.products }).map(row => <tr key={row.category}>
             <td>{row.category}</td><td><span className={'delta ' + pctTone(row.change)}>{formatPct(row.change)}</span></td><td>{faNumber.format(row.products)}</td>
           </tr>)}</tbody>
         </table></div> : <EmptyState title="دادهٔ کافی نیست" body="حداقل دو قیمت برای کالاهای یک دسته ثبت کنید."/>}
@@ -544,8 +596,12 @@ export default function App() {
       <section className="panel">
         <div className="panel-head"><div><h2>نوسان قیمت کالاها</h2><p>شدت متوسط تغییر میان ثبت‌های متوالی؛ عدد بیشتر یعنی قیمت ناپایدارتر</p></div></div>
         {volatility.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table compact-insight-table">
-          <thead><tr><th>کالا</th><th>نوسان</th><th>تعداد ثبت</th></tr></thead>
-          <tbody>{volatility.map(row => <tr key={row.name}>
+          <thead><tr>
+            <TableSortHeader table="volatility" column="name" label="کالا" sort={tableSorts.volatility} onSort={toggleTableSort}/>
+            <TableSortHeader table="volatility" column="volatility" label="نوسان" sort={tableSorts.volatility} onSort={toggleTableSort} initialDirection="desc"/>
+            <TableSortHeader table="volatility" column="count" label="تعداد ثبت" sort={tableSorts.volatility} onSort={toggleTableSort}/>
+          </tr></thead>
+          <tbody>{sortTableRows('volatility', volatility, { name: row => row.name, volatility: row => row.volatility, count: row => row.count }).map(row => <tr key={row.name}>
             <td>{row.name}</td><td><strong className="table-primary-number">{formatPct(row.volatility)}</strong></td><td>{faNumber.format(row.count)}</td>
           </tr>)}</tbody>
         </table></div> : <EmptyState title="دادهٔ کافی نیست" body="برای سنجش نوسان به چند ثبت متوالی نیاز است."/>}
@@ -554,8 +610,17 @@ export default function App() {
       <section className="panel analysis-table-wide">
         <div className="panel-head"><div><h2>مقایسهٔ فروشگاه‌ها</h2><p>میانگین وزنی قیمت {selectedProduct?.name ?? 'کالای انتخابی'} در هر فروشگاه</p></div>{bestStore ? <Badge tone="success">کمترین میانگین: {bestStore.store}</Badge> : null}</div>
         {storeData.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table store-comparison-table">
-          <thead><tr><th>فروشگاه</th><th>میانگین وزنی</th><th>آخرین قیمت</th><th>کمینه تا بیشینه</th><th>تعداد ثبت</th></tr></thead>
-          <tbody>{storeData.map(row => <tr key={row.store}>
+          <thead><tr>
+            <TableSortHeader table="stores" column="store" label="فروشگاه" sort={tableSorts.stores} onSort={toggleTableSort}/>
+            <TableSortHeader table="stores" column="avg" label="میانگین وزنی" sort={tableSorts.stores} onSort={toggleTableSort}/>
+            <TableSortHeader table="stores" column="latest" label="آخرین قیمت" sort={tableSorts.stores} onSort={toggleTableSort}/>
+            <TableSortHeader table="stores" column="range" label="کمینه تا بیشینه" sort={tableSorts.stores} onSort={toggleTableSort}/>
+            <TableSortHeader table="stores" column="count" label="تعداد ثبت" sort={tableSorts.stores} onSort={toggleTableSort}/>
+          </tr></thead>
+          <tbody>{sortTableRows('stores', storeData, {
+            store: row => row.store, avg: row => row.avg, latest: row => row.latest,
+            range: row => row.max - row.min, count: row => row.count
+          }).map(row => <tr key={row.store}>
             <td>{row.store}</td><td><strong className="table-primary-number">{money(row.avg)}</strong></td><td>{money(row.latest)}</td><td>{money(row.min)} – {money(row.max)}</td><td>{faNumber.format(row.count)}</td>
           </tr>)}</tbody>
         </table></div> : <EmptyState title="فروشگاهی ثبت نشده" body="هنگام ثبت قیمت نام فروشگاه را وارد کنید تا این مقایسه ساخته شود."/>}
