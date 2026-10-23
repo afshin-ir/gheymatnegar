@@ -22,7 +22,7 @@ import { ChartTooltip } from './components/charts'
 import { ProductForm, PurchaseForm } from './components/forms'
 import { PersianDatePicker } from './components/date-picker'
 import { Badge, ConfirmDialog, EmptyState, Modal, StatCard } from './components/ui'
-import { MobileNavigation, Sidebar, Topbar, type PageId } from './components/navigation'
+import { MobileNavigation, Sidebar, type PageId } from './components/navigation'
 
 type Toast = { id: number; text: string; kind: 'ok'|'error'|'info' }
 
@@ -62,7 +62,6 @@ export default function App() {
   const financialSnapshots = financialSnapshotsLive ?? []
 
   const [page, setPage] = useState<PageId>('dashboard')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [productModal, setProductModal] = useState<{open:boolean; product?:Product|null}>({open:false})
   const [purchaseModal, setPurchaseModal] = useState<{open:boolean; purchase?:Purchase|null; productId?:string}>({open:false})
   const [selectedProductId, setSelectedProductId] = useState('')
@@ -170,13 +169,6 @@ export default function App() {
       setSelectedProductId(products.find(p => !p.archived)?.id ?? '')
     }
   }, [loading, products, selectedProductId])
-
-  useEffect(() => {
-    if (!sidebarOpen) return
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setSidebarOpen(false) }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [sidebarOpen])
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
@@ -657,7 +649,6 @@ export default function App() {
   </>
 
   const navigate = (nextPage: PageId) => {
-    setSidebarOpen(false)
     if (nextPage === page) {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
       return
@@ -666,9 +657,8 @@ export default function App() {
   }
 
   return <div className="app-shell">
-    <Sidebar page={page} open={sidebarOpen} onNavigate={navigate} onClose={() => setSidebarOpen(false)}/>
+    <Sidebar page={page} onNavigate={navigate}/>
     <main className="main">
-      <Topbar page={page} isDark={isDark} onMenu={() => setSidebarOpen(true)} onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')}/>
       <div className="page-content">
         {page==='dashboard'?renderDashboard():page==='products'?renderProducts():page==='analytics'?renderAnalytics():renderData()}
         <footer className="site-footer" aria-label="پاورقی">
