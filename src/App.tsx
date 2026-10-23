@@ -7,7 +7,7 @@ import {
   Sun, Trash2, TrendingDown, TrendingUp, Upload, WifiOff, X
 } from 'lucide-react'
 import {
-  Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis
+  CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from 'recharts'
 import { db, DEFAULT_SETTINGS } from './lib/db'
 import type { BackupData, Product, Purchase, Store, ThemeMode } from './lib/types'
