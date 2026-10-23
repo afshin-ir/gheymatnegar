@@ -13,7 +13,7 @@ import { db, DEFAULT_SETTINGS } from './lib/db'
 import type { BackupData, Product, Purchase, Store, ThemeMode } from './lib/types'
 import { buildCompositeIndex, categoryInflation, filterPurchases, getProductStats, lastNDaysISO, periodProductChange, sortPurchases, storeComparison } from './lib/analytics'
 import { downloadText, encryptBackup, parseBackup, purchasesToCsv } from './lib/backup'
-import { formatDate, formatMoney, formatMonth, formatPct, faDecimal, faNumber, todayISO } from './lib/format'
+import { formatDate, formatShortDate, formatMoney, formatMonth, formatPct, faDecimal, faNumber, todayISO } from './lib/format'
 import { makeSearchKey, normalizePersianText, normalizeStoreName, sameNormalizedText } from './lib/text'
 import { planBackupMerge, resolveMergeCurrency } from './lib/merge'
 import { APP_VERSION, BACKUP_REMINDER_DAYS, MAX_BACKUP_FILE_BYTES } from './lib/constants'
@@ -445,7 +445,7 @@ export default function App() {
             </tr></thead>
             <tbody>{sortTableRows('increase', topChanges.map((item, rank) => ({ ...item, rank: rank + 1 })), { rank: item => item.rank, name: item => item.name, change: item => item.change }).map((item, index) => <tr key={item.id} className="clickable" tabIndex={0} role="button" aria-label={'مشاهدهٔ سابقهٔ قیمت ' + item.name} onClick={() => { selectProduct(item.id); setPage('products') }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectProduct(item.id); setPage('products') } }}>
               <td><span className="table-rank">{faNumber.format(index + 1)}</span></td>
-              <td>{item.name}<small>{faNumber.format(item.count)} ثبت · آخرین ثبت {item.lastDate ? formatDate(item.lastDate) : '—'}</small></td>
+              <td><span className="increase-name"><span>{item.name}</span><ChevronLeft size={14} className="increase-row-cue" aria-hidden="true"/></span><small title={item.lastDate ? 'آخرین ثبت: ' + formatDate(item.lastDate) : undefined}>{faNumber.format(item.count)} ثبت · {item.lastDate ? formatShortDate(item.lastDate) : '—'}</small></td>
               <td><span className="delta up">{formatPct(item.change)}</span></td>
             </tr>)}</tbody>
           </table></div> : <EmptyState title="هنوز مقایسه‌ای نداریم" body="هر کالا به حداقل دو ثبت قیمت نیاز دارد."/>}
