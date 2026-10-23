@@ -165,8 +165,8 @@ input, select, textarea { color: var(--text); background: var(--surface); }
 .panel-head p, .settings-title p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.8; }
 .dashboard-grid, .analytics-grid, .finance-grid { margin-bottom: 16px; display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(340px, .85fr); gap: 16px; }
 .analytics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.index-timeline { display: flex; direction: rtl; gap: 10px; overflow-x: auto; padding: 3px 2px 11px; scroll-snap-type: x proximity; scrollbar-width: thin; }
-.index-point { min-width: 142px; padding: 13px 14px 12px; display: grid; align-content: start; gap: 5px; flex: 0 0 142px; scroll-snap-align: start; background: linear-gradient(160deg, color-mix(in srgb, var(--primary-soft) 62%, var(--surface)), var(--surface)); border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--border)); border-radius: 14px; }
+.index-timeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 142px), 1fr)); direction: rtl; gap: 10px; padding: 3px 2px 11px; }
+.index-point { min-width: 0; padding: 13px 14px 12px; display: grid; align-content: start; gap: 5px; background: linear-gradient(160deg, color-mix(in srgb, var(--primary-soft) 62%, var(--surface)), var(--surface)); border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--border)); border-radius: 14px; }
 .index-point-month { color: var(--muted); font-size: 11px; font-weight: 700; }
 .index-point-label { margin-top: 3px; color: var(--faint); font-size: 10.5px; }
 .index-point-value { color: var(--text); font-size: 25px; line-height: 1.2; font-weight: 800; font-variant-numeric: tabular-nums; }
