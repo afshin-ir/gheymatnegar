@@ -445,7 +445,7 @@ export default function App() {
             <td><strong>{row.product.name}</strong><small>{row.product.category} · {row.product.unit}</small></td>
             <td>{moneyValue(row.previousPrice!)}</td>
             <td><strong className="table-primary-number">{moneyValue(row.currentPrice)}</strong></td>
-            <td><span className={`delta ${pctTone(row.changePct)}`}>{row.changePct === 0 ? <Minus size={15}/> : row.changePct > 0 ? <TrendingUp size={15}/> : <TrendingDown size={15}/>} {formatPct(row.changePct!)}</span></td>
+            <td><span className={`delta ${pctTone(row.changePct)}`}>{row.changePct === 0 ? <Minus size={15}/> : row.changePct! > 0 ? <TrendingUp size={15}/> : <TrendingDown size={15}/>} {formatPct(row.changePct!)}</span></td>
           </tr>)}</tbody>
         </table></div>
         <div className="chart-note"><Info size={15}/><span>فقط کالاهایی نمایش داده می‌شوند که برای هر دو ماهِ هم‌نام قیمت ثبت شده باشد. درصد تغییر بر اساس میانهٔ قیمت‌های ثبت‌شده در این دو ماه محاسبه می‌شود.</span></div>
