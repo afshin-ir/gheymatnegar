@@ -773,15 +773,13 @@ hr { margin: 18px 0; border: 0; border-top: 1px solid var(--border); }
 }
 .insight-table-wrap, .comparison-table-wrap {
   position: relative;
-  max-height: min(70vh, 680px);
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
+  max-height: none;
+  overflow: visible;
 }
 .insight-table-wrap .insight-table thead th,
 .comparison-table-wrap .comparison-table thead th {
   position: sticky;
-  top: 0;
+  top: 64px;
   z-index: 5;
 }
 .table-more {
@@ -823,7 +821,8 @@ hr { margin: 18px 0; border: 0; border-top: 1px solid var(--border); }
   font-variant-numeric: tabular-nums;
 }
 @media (max-width: 620px) {
-  .insight-table-wrap, .comparison-table-wrap {
-    max-height: min(66vh, 560px);
+  .insight-table-wrap .insight-table thead th,
+  .comparison-table-wrap .comparison-table thead th {
+    top: 58px;
   }
 }
