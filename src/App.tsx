@@ -177,9 +177,15 @@ export default function App() {
   const filteredPurchases = useMemo(() => rangeInvalid ? [] : filterPurchases(purchases, rangeFrom || undefined, rangeTo || undefined), [purchases, rangeFrom, rangeTo, rangeInvalid])
   const activeProducts = useMemo(() => products.filter(product => !product.archived), [products])
   const stats = useMemo(() => getProductStats(products, filteredPurchases), [products, filteredPurchases])
-  const composite = useMemo(() => buildCompositeIndex(filteredPurchases, startOfPersianMonthISO(rangeTo || todayISO())), [filteredPurchases, rangeTo])
+  const composite = useMemo(() => {
+    if (rangeInvalid) return []
+    const fromMonth = rangeFrom ? startOfPersianMonthISO(rangeFrom) : null
+    const throughMonth = startOfPersianMonthISO(rangeTo || todayISO())
+    return buildCompositeIndex(purchases, throughMonth)
+      .filter(point => point.month <= throughMonth && (!fromMonth || point.month >= fromMonth))
+  }, [purchases, rangeFrom, rangeTo, rangeInvalid])
   const latestComposite = composite.at(-1)
-  const observedIndexMonths = composite.filter((point, index) => point.hasData && (index === 0 || point.matched > 0))
+  const observedIndexMonths = composite.filter(point => point.hasData)
   const categories = useMemo(() => ['همه', ...Array.from(new Set(activeProducts.map(product => product.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'fa'))], [activeProducts])
   const normalizedSearch = useMemo(() => normalizePersianText(search), [search])
   const filteredStats = useMemo(() => {
@@ -453,30 +459,36 @@ export default function App() {
       </section> : null}
 
       <section className="panel">
-          <div className="panel-head">
-            <div>
-              <h2>شاخص سبد و تغییر قیمت</h2>
-              <p>روند ماهانهٔ شاخص و درصد تغییر در یک جدول</p>
-            </div>
-            {latestComposite ? <Badge tone={!latestComposite.hasData ? 'default' : latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{latestComposite.hasData ? faDecimal.format(latestComposite.coveragePct) + '٪ پوشش آخرین ماه' : 'بدون ثبت این ماه'}</Badge> : <Badge tone="info">داده‌ای نداریم</Badge>}
+        <div className="panel-head">
+          <div>
+            <h2>تورم سبد قیمت‌های ثبت‌شده</h2>
+            <p>تغییر ماهانه و نقطه‌به‌نقطهٔ قیمت کالاهای ثبت‌شده در سبد شخصی</p>
           </div>
-          {latestComposite && !latestComposite.hasData ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمتی ثبت نشده؛ شاخص از آخرین مقدار موجود ادامه پیدا می‌کند و این ماه تورم صفر محسوب نمی‌شود.</span></div> : null}
-          {latestComposite?.hasData && latestComposite.matched === 0 ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمت قابل‌مقایسه‌ای ثبت نشده؛ برای محاسبهٔ تغییر، قیمت کالاهای دارای سابقه را دوباره ثبت کنید.</span></div> : null}
-          {observedIndexMonths.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table dashboard-index-table">
-            <thead><tr>
-              <TableSortHeader table="index" column="month" label="ماه" sort={tableSorts.index} onSort={toggleTableSort}/>
-              <TableSortHeader table="index" column="index" label="شاخص سبد" sort={tableSorts.index} onSort={toggleTableSort}/>
-              <TableSortHeader table="index" column="change" label="تغییر شاخص" sort={tableSorts.index} onSort={toggleTableSort}/>
-            </tr></thead>
-            <tbody>{sortTableRows('index', observedIndexMonths, { month: point => point.month, index: point => point.index, change: point => point.changePct }).map(point => <tr key={point.month}>
-              <td>{formatMonth(point.month)}</td>
-              <td><strong className="table-primary-number">{faDecimal.format(point.index)}</strong></td>
-              <td>{point.changePct == null ? <span className="table-muted">{point.month === observedIndexMonths[0].month ? 'مبنای شاخص' : 'بدون مقایسه'}</span> : <span className={'delta ' + pctTone(point.changePct)}>{formatPct(point.changePct)}</span>}</td>
-            </tr>)}</tbody>
-          </table></div> : <EmptyState icon={<LineIcon size={24}/>} title="هنوز داده‌ای برای شاخص نداریم" body="با ثبت قیمت کالاها، مقادیر ماهانهٔ شاخص در این بخش نمایش داده می‌شوند."/>}
-          <div className="chart-note"><Info size={15}/><span>ماه پایه با شاخص ۱۰۰ نمایش داده می‌شود؛ پس از آن فقط ماه‌هایی می‌آیند که دست‌کم یک کالای قابل‌مقایسه دارند. ماه‌های بدون مقایسه، تورم صفر محسوب نمی‌شوند.</span></div>
-        </section>
-      </div>
+          {latestComposite ? <Badge tone={!latestComposite.hasData ? 'default' : latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{latestComposite.hasData ? faDecimal.format(latestComposite.coveragePct) + '٪ پوشش آخرین ماه' : 'بدون ثبت این ماه'}</Badge> : <Badge tone="info">داده‌ای نداریم</Badge>}
+        </div>
+        {latestComposite && !latestComposite.hasData ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمتی ثبت نشده؛ برای این ماه نرخ تورم محاسبه نمی‌شود و تغییر صفر تلقی نمی‌شود.</span></div> : null}
+        {latestComposite?.hasData && latestComposite.matched === 0 ? <div className="inline-warning"><Info size={16}/><span>در {formatMonth(latestComposite.month)} قیمت قابل‌مقایسه‌ای با ماه قبل ثبت نشده؛ تورم ماهانه برای این ماه محاسبه نشده است.</span></div> : null}
+        {observedIndexMonths.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table dashboard-index-table">
+          <thead><tr>
+            <TableSortHeader table="index" column="month" label="ماه" sort={tableSorts.index} onSort={toggleTableSort}/>
+            <TableSortHeader table="index" column="monthly" label="تورم ماهانهٔ سبد" sort={tableSorts.index} onSort={toggleTableSort} initialDirection="desc"/>
+            <TableSortHeader table="index" column="annual" label="تورم نقطه‌به‌نقطه" sort={tableSorts.index} onSort={toggleTableSort} initialDirection="desc"/>
+            <TableSortHeader table="index" column="matched" label="کالاهای مشترک" sort={tableSorts.index} onSort={toggleTableSort} initialDirection="desc"/>
+          </tr></thead>
+          <tbody>{sortTableRows('index', observedIndexMonths, {
+            month: point => point.month,
+            monthly: point => point.changePct,
+            annual: point => point.yearOverYearChangePct,
+            matched: point => point.yearOverYearMatched
+          }).map(point => <tr key={point.month}>
+            <td>{formatMonth(point.month)}</td>
+            <td>{point.changePct == null ? <span className="table-muted">{point.month === observedIndexMonths[0].month ? 'مبنای سبد' : 'قابل محاسبه نیست'}</span> : <span className={'delta ' + pctTone(point.changePct)}>{formatPct(point.changePct)}</span>}</td>
+            <td>{point.yearOverYearChangePct == null ? <span className="table-muted">دادهٔ هم‌ماه ندارد</span> : <span className={'delta ' + pctTone(point.yearOverYearChangePct)}>{formatPct(point.yearOverYearChangePct)}</span>}</td>
+            <td>{faNumber.format(point.yearOverYearMatched)}</td>
+          </tr>)}</tbody>
+        </table></div> : <EmptyState icon={<LineIcon size={24}/>} title="هنوز داده‌ای برای سبد نداریم" body="با ثبت قیمت کالاها در چند ماه، نرخ ماهانه و نقطه‌به‌نقطهٔ سبد نمایش داده می‌شود."/>}
+        <div className="chart-note"><Info size={15}/><span>نرخ‌ها برآوردی بر پایهٔ قیمت‌های ثبت‌شدهٔ خودتان هستند، نه آمار رسمی. تورم نقطه‌به‌نقطه فقط با وجود قیمت کالاهای مشترک در همان ماهِ سال قبل محاسبه می‌شود.</span></div>
+      </section>
 
       <section className="panel">
         <div className="panel-head"><div><h2>مقایسهٔ قیمت کالاها</h2><p>دامنهٔ کمینه تا بیشینه و درصد تغییر در بازهٔ انتخاب‌شده</p></div><button className="text-button" onClick={() => setPage('products')}>فهرست کالاها <ChevronLeft size={16}/></button></div>
