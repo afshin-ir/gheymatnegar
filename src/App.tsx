@@ -11,13 +11,13 @@ import {
 } from 'recharts'
 import { db, DEFAULT_SETTINGS } from './lib/db'
 import type { BackupData, Product, Purchase, Store, ThemeMode } from './lib/types'
-import { buildCompositeIndex, categoryInflation, filterPurchases, getProductStats, lastNDaysISO, periodProductChange, sortPurchases, storeComparison } from './lib/analytics'
+import { buildCompositeIndex, buildPointToPointChanges, categoryInflation, filterPurchases, getProductStats, lastNDaysISO, periodProductChange, sortPurchases, storeComparison } from './lib/analytics'
 import { downloadText, encryptBackup, parseBackup, purchasesToCsv } from './lib/backup'
 import { formatDate, formatMoney, formatMonth, formatPct, faDecimal, faNumber, todayISO } from './lib/format'
 import { makeSearchKey, normalizePersianText, normalizeStoreName, sameNormalizedText } from './lib/text'
 import { planBackupMerge, resolveMergeCurrency } from './lib/merge'
 import { APP_VERSION, BACKUP_REMINDER_DAYS, MAX_BACKUP_FILE_BYTES } from './lib/constants'
-import { startOfPersianMonthISO } from './lib/persian-date'
+import { shiftPersianMonthISO, startOfPersianMonthISO } from './lib/persian-date'
 import { ChartTooltip } from './components/charts'
 import { ProductForm, PurchaseForm } from './components/forms'
 import { PersianDatePicker } from './components/date-picker'
@@ -69,7 +69,7 @@ export default function App() {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('همه')
   const [sortBy, setSortBy] = useState<'recent'|'change'|'name'>('recent')
-  const [tableSorts, setTableSorts] = useState<Record<string, TableSortState>>({ comparison: { column: 'change', direction: 'desc' } })
+  const [tableSorts, setTableSorts] = useState<Record<string, TableSortState>>({ comparison: { column: 'change', direction: 'desc' }, pointToPoint: { column: 'change', direction: 'desc' } })
   const [comparisonExpanded, setComparisonExpanded] = useState(false)
   const toggleTableSort = (table: string, column: string, initialDirection: 'asc'|'desc' = 'asc') => {
     setTableSorts(current => {
@@ -232,14 +232,29 @@ export default function App() {
     .sort((a, b) => (b.lastDate ?? '').localeCompare(a.lastDate ?? '')), [stats])
   const comparisonStats = useMemo(() => sortTableRows('comparison', recentStats, {
     name: stat => stat.product.name,
-    first: stat => stat.first,
-    latest: stat => stat.latest,
     range: stat => stat.min == null || stat.max == null ? null : stat.max - stat.min,
     change: stat => stat.changePct,
     count: stat => stat.count,
     recent: stat => stat.lastDate
   }), [recentStats, tableSorts])
   const visibleComparisonStats = comparisonExpanded ? comparisonStats : comparisonStats.slice(0, 10)
+  const pointToPointMonth = useMemo(() => {
+    const months = filteredPurchases
+      .filter(purchase => Number.isFinite(purchase.unitPrice) && purchase.unitPrice > 0)
+      .map(purchase => startOfPersianMonthISO(purchase.date))
+      .sort()
+    return months.at(-1) ?? null
+  }, [filteredPurchases])
+  const pointToPointRows = useMemo(
+    () => buildPointToPointChanges(activeProducts, purchases, pointToPointMonth ?? undefined),
+    [activeProducts, purchases, pointToPointMonth]
+  )
+  const sortedPointToPointRows = sortTableRows('pointToPoint', pointToPointRows, {
+    name: row => row.product.name,
+    previous: row => row.previousPrice,
+    current: row => row.currentPrice,
+    change: row => row.changePct
+  })
   const money = (value: number, compact = settings.compactNumbers) => formatMoney(value, settings.currency, compact)
   const moneyValue = (value: number, compact = settings.compactNumbers) => {
     const formatted = money(value, compact)
@@ -409,6 +424,32 @@ export default function App() {
         <button className="button secondary small" onClick={() => setPage('data')}>رفتن به پشتیبان</button>
       </section> : null}
 
+      
+      <section className="panel point-to-point-panel">
+        <div className="panel-head">
+          <div>
+            <h2>تورم نقطه‌به‌نقطهٔ کالاها</h2>
+            <p>قیمت هر کالا در آخرین ماهِ بازه با همان ماه در سال گذشته مقایسه می‌شود</p>
+          </div>
+          {pointToPointMonth ? <Badge tone="info">{formatMonth(pointToPointMonth)} در برابر {formatMonth(shiftPersianMonthISO(pointToPointMonth, -12))}</Badge> : <Badge tone="default">داده‌ای نداریم</Badge>}
+        </div>
+        {pointToPointRows.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table point-to-point-table">
+          <thead><tr>
+            <TableSortHeader table="pointToPoint" column="name" label="کالا" sort={tableSorts.pointToPoint} onSort={toggleTableSort}/>
+            <TableSortHeader table="pointToPoint" column="previous" label={`قیمت سال قبل (${settings.currency})`} sort={tableSorts.pointToPoint} onSort={toggleTableSort}/>
+            <TableSortHeader table="pointToPoint" column="current" label={`قیمت این ماه (${settings.currency})`} sort={tableSorts.pointToPoint} onSort={toggleTableSort}/>
+            <TableSortHeader table="pointToPoint" column="change" label="تغییر نقطه‌به‌نقطه" sort={tableSorts.pointToPoint} onSort={toggleTableSort} initialDirection="desc"/>
+          </tr></thead>
+          <tbody>{sortedPointToPointRows.map(row => <tr key={row.product.id} className="clickable" tabIndex={0} role="button" aria-label={'مشاهدهٔ سابقهٔ قیمت ' + row.product.name} onClick={() => { selectProduct(row.product.id); setPage('products') }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectProduct(row.product.id); setPage('products') } }}>
+            <td><strong>{row.product.name}</strong><small>{row.product.category} · {row.product.unit}</small></td>
+            <td>{row.previousPrice == null ? <span className="table-muted">سابقهٔ هم‌ماه ندارد</span> : moneyValue(row.previousPrice)}</td>
+            <td><strong className="table-primary-number">{moneyValue(row.currentPrice)}</strong></td>
+            <td>{row.changePct == null ? <span className="table-muted">قابل محاسبه نیست</span> : <span className={`delta ${pctTone(row.changePct)}`}>{row.changePct === 0 ? <Minus size={15}/> : row.changePct > 0 ? <TrendingUp size={15}/> : <TrendingDown size={15}/>} {formatPct(row.changePct)}</span>}</td>
+          </tr>)}</tbody>
+        </table></div> : <EmptyState icon={<LineIcon size={24}/>} title={pointToPointMonth ? 'در این ماه قیمتی ثبت نشده' : 'هنوز داده‌ای برای مقایسه نداریم'} body="برای محاسبهٔ تغییر نقطه‌به‌نقطه، قیمت یک کالا باید هم در ماه انتخابی و هم در همان ماهِ سال قبل ثبت شده باشد."/>}
+        {pointToPointRows.length ? <div className="chart-note"><Info size={15}/><span>درصد هر کالا از میانهٔ قیمت‌های ثبت‌شده در دو ماه هم‌نام محاسبه می‌شود. کالاهایی که سابقهٔ هم‌ماه پارسال ندارند، تا زمان ثبت آن قابل مقایسه نیستند.</span></div> : null}
+      </section>
+
       <div className="dashboard-grid dashboard-grid-single">
         <section className="panel">
           <div className="panel-head">
@@ -438,20 +479,16 @@ export default function App() {
       </div>
 
       <section className="panel">
-        <div className="panel-head"><div><h2>مقایسهٔ قیمت کالاها</h2><p>قیمت آغاز و پایان، دامنهٔ قیمت و تغییر در بازهٔ انتخاب‌شده</p></div><button className="text-button" onClick={() => setPage('products')}>فهرست کالاها <ChevronLeft size={16}/></button></div>
+        <div className="panel-head"><div><h2>مقایسهٔ قیمت کالاها</h2><p>دامنهٔ کمینه تا بیشینه و درصد تغییر در بازهٔ انتخاب‌شده</p></div><button className="text-button" onClick={() => setPage('products')}>فهرست کالاها <ChevronLeft size={16}/></button></div>
         {comparisonStats.length ? <><div className={`table-wrap comparison-table-wrap ${comparisonExpanded ? 'expanded' : ''}`}><table className="comparison-table"><thead><tr>
           <TableSortHeader table="comparison" column="name" label="کالا" sort={tableSorts.comparison} onSort={toggleTableSort}/>
-          <TableSortHeader table="comparison" column="first" label={`قیمت آغاز بازه (${settings.currency})`} sort={tableSorts.comparison} onSort={toggleTableSort}/>
-          <TableSortHeader table="comparison" column="latest" label={`آخرین قیمت (${settings.currency})`} sort={tableSorts.comparison} onSort={toggleTableSort}/>
           <TableSortHeader table="comparison" column="range" label={`کمینه تا بیشینه (${settings.currency})`} sort={tableSorts.comparison} onSort={toggleTableSort}/>
           <TableSortHeader table="comparison" column="change" label="تغییر بازه" sort={tableSorts.comparison} onSort={toggleTableSort} initialDirection="desc"/>
           <TableSortHeader table="comparison" column="count" label="تعداد ثبت" sort={tableSorts.comparison} onSort={toggleTableSort}/>
           <TableSortHeader table="comparison" column="recent" label="آخرین ثبت" sort={tableSorts.comparison} onSort={toggleTableSort} initialDirection="desc"/>
         </tr></thead><tbody>{visibleComparisonStats.map(stat => <tr key={stat.product.id} className="clickable" tabIndex={0} role="button" onClick={() => { selectProduct(stat.product.id); setPage('products') }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectProduct(stat.product.id); setPage('products') } }}>
           <td data-label="کالا"><strong>{stat.product.name}</strong><small>{stat.product.category} · {stat.product.unit}</small></td>
-          <td data-label={`قیمت آغاز بازه (${settings.currency})`}>{stat.first == null ? '—' : moneyValue(stat.first)}</td>
-          <td data-label={`آخرین قیمت (${settings.currency})`}>{stat.latest == null ? '—' : moneyValue(stat.latest)}</td>
-          <td data-label={`کمینه تا بیشینه (${settings.currency})`}>{stat.min == null || stat.max == null ? '—' : <>{moneyValue(stat.min)} – {moneyValue(stat.max)}</>}</td>
+          <td data-label={`کمینه تا بیشینه (${settings.currency})`}>{stat.min == null || stat.max == null ? '—' : <>{moneyValue(stat.min)} تا {moneyValue(stat.max)}</>}</td>
           <td data-label="تغییر بازه"><span className={`delta ${pctTone(stat.changePct)}`}>{stat.changePct == null || stat.changePct === 0 ? <Minus size={15}/> : stat.changePct > 0 ? <TrendingUp size={15}/> : <TrendingDown size={15}/>} {formatPct(stat.changePct)}</span></td>
           <td data-label="تعداد ثبت">{faNumber.format(stat.count)} ثبت</td>
           <td data-label="آخرین ثبت">{stat.lastDate ? formatDate(stat.lastDate) : '—'}</td>
