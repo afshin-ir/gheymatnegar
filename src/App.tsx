@@ -42,7 +42,7 @@ function TableSortHeader({ label, table, column, sort, onSort, initialDirection 
   const direction = active ? sort.direction : null
   return <th aria-sort={direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : 'none'}>
     <button type="button" className={`table-sort ${active ? 'is-active' : ''}`} onClick={() => onSort(table, column, initialDirection)}>
-      {label}<span aria-hidden="true">{direction === 'asc' ? '↑' : direction === 'desc' ? '↓' : '↕'}</span>
+      {label}<span aria-hidden="true">{direction === 'asc' ? '▲' : direction === 'desc' ? '▼' : '↕'}</span>
     </button>
   </th>
 }
@@ -71,6 +71,7 @@ export default function App() {
   const [category, setCategory] = useState('همه')
   const [sortBy, setSortBy] = useState<'recent'|'change'|'name'>('recent')
   const [tableSorts, setTableSorts] = useState<Record<string, TableSortState>>({ comparison: { column: 'change', direction: 'desc' } })
+  const [comparisonExpanded, setComparisonExpanded] = useState(false)
   const toggleTableSort = (table: string, column: string, initialDirection: 'asc'|'desc' = 'asc') => {
     setTableSorts(current => {
       const previous = current[table]
@@ -260,7 +261,8 @@ export default function App() {
     change: stat => stat.changePct,
     count: stat => stat.count,
     recent: stat => stat.lastDate
-  }).slice(0, 20), [recentStats, tableSorts])
+  }), [recentStats, tableSorts])
+  const visibleComparisonStats = comparisonExpanded ? comparisonStats : comparisonStats.slice(0, 10)
   const money = (value: number, compact = settings.compactNumbers) => formatMoney(value, settings.currency, compact)
   const isDark = settings.theme === 'dark' || (settings.theme === 'system' && systemDark)
   const lastBackupAt = settings.lastBackupAt ? new Date(settings.lastBackupAt) : null
@@ -492,7 +494,7 @@ export default function App() {
 
       <section className="panel">
         <div className="panel-head"><div><h2>مقایسهٔ قیمت کالاها</h2><p>قیمت آغاز و پایان، دامنهٔ قیمت و تغییر در بازهٔ انتخاب‌شده</p></div><button className="text-button" onClick={() => setPage('products')}>فهرست کالاها <ChevronLeft size={16}/></button></div>
-        {comparisonStats.length ? <div className="table-wrap"><table className="comparison-table"><thead><tr>
+        {comparisonStats.length ? <div className={`table-wrap comparison-table-wrap ${comparisonExpanded ? 'expanded' : ''}`}><table className="comparison-table"><thead><tr>
           <TableSortHeader table="comparison" column="name" label="کالا" sort={tableSorts.comparison} onSort={toggleTableSort}/>
           <TableSortHeader table="comparison" column="first" label="قیمت آغاز بازه" sort={tableSorts.comparison} onSort={toggleTableSort}/>
           <TableSortHeader table="comparison" column="latest" label="آخرین قیمت" sort={tableSorts.comparison} onSort={toggleTableSort}/>
@@ -500,7 +502,7 @@ export default function App() {
           <TableSortHeader table="comparison" column="change" label="تغییر بازه" sort={tableSorts.comparison} onSort={toggleTableSort} initialDirection="desc"/>
           <TableSortHeader table="comparison" column="count" label="تعداد ثبت" sort={tableSorts.comparison} onSort={toggleTableSort}/>
           <TableSortHeader table="comparison" column="recent" label="آخرین ثبت" sort={tableSorts.comparison} onSort={toggleTableSort} initialDirection="desc"/>
-        </tr></thead><tbody>{comparisonStats.map(stat => <tr key={stat.product.id} className="clickable" tabIndex={0} role="button" onClick={() => { selectProduct(stat.product.id); setPage('products') }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectProduct(stat.product.id); setPage('products') } }}>
+        </tr></thead><tbody>{visibleComparisonStats.map(stat => <tr key={stat.product.id} className="clickable" tabIndex={0} role="button" onClick={() => { selectProduct(stat.product.id); setPage('products') }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectProduct(stat.product.id); setPage('products') } }}>
           <td data-label="کالا"><strong>{stat.product.name}</strong><small>{stat.product.category} · {stat.product.unit}</small></td>
           <td data-label="قیمت آغاز بازه">{stat.first == null ? '—' : money(stat.first)}</td>
           <td data-label="آخرین قیمت">{stat.latest == null ? '—' : money(stat.latest)}</td>
@@ -508,7 +510,11 @@ export default function App() {
           <td data-label="تغییر بازه"><span className={`delta ${pctTone(stat.changePct)}`}>{stat.changePct == null || stat.changePct === 0 ? <Minus size={15}/> : stat.changePct > 0 ? <TrendingUp size={15}/> : <TrendingDown size={15}/>} {formatPct(stat.changePct)}</span></td>
           <td data-label="تعداد ثبت">{faNumber.format(stat.count)} ثبت</td>
           <td data-label="آخرین ثبت">{stat.lastDate ? formatDate(stat.lastDate) : '—'}</td>
-        </tr>)}</tbody></table></div> : <EmptyState icon={<Activity size={24}/>} title="در این بازه قیمت ثبت نشده" body="بازه را تغییر دهید یا برای کالاها قیمت ثبت کنید." action={activeProducts.length ? <button className="button primary small" onClick={() => setPurchaseModal({ open: true })}><Plus size={17}/>ثبت قیمت</button> : undefined}/>}
+        </tr>)}</tbody></table></div>{comparisonStats.length > 10 ? <div className="table-more">
+          <button type="button" className="table-more-button" aria-expanded={comparisonExpanded} onClick={() => setComparisonExpanded(value => !value)}>
+            {comparisonExpanded ? 'نمایش ۱۰ کالای نخست' : `نمایش همهٔ ${faNumber.format(comparisonStats.length)} کالا`}
+          </button>
+        </div> : null} : <EmptyState icon={<Activity size={24}/>} title="در این بازه قیمت ثبت نشده" body="بازه را تغییر دهید یا برای کالاها قیمت ثبت کنید." action={activeProducts.length ? <button className="button primary small" onClick={() => setPurchaseModal({ open: true })}><Plus size={17}/>ثبت قیمت</button> : undefined}/>}
       </section>
     </>}
   </>
