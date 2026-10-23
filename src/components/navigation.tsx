@@ -1,5 +1,4 @@
 import { BarChart3, Database, Home, LineChart, Menu, Moon, ShoppingBasket, Sun, X } from 'lucide-react'
-import { Badge } from './ui'
 
 export const NAV_ITEMS = [
   { id: 'dashboard', label: 'داشبورد', mobileLabel: 'داشبورد', icon: Home },
@@ -24,19 +23,17 @@ export function Sidebar({ page, open, onNavigate, onClose }: { page: PageId; ope
         const Icon = item.icon
         return <button key={item.id} className={page === item.id ? 'active' : ''} aria-current={page === item.id ? 'page' : undefined} onClick={() => onNavigate(item.id)}><Icon size={20}/><span>{item.label}</span></button>
       })}</nav>
-      <div className="sidebar-status"><div className="privacy-dot"/><div><strong>ذخیره‌سازی محلی</strong><span>ثبت‌ها فقط روی این دستگاه</span></div></div>
     </aside>
     {open ? <div className="sidebar-scrim" onClick={onClose}/> : null}
   </>
 }
 
-export function Topbar({ page, online, isDark, onMenu, onToggleTheme }: { page: PageId; online: boolean; isDark: boolean; onMenu: () => void; onToggleTheme: () => void }) {
+export function Topbar({ page, isDark, onMenu, onToggleTheme }: { page: PageId; isDark: boolean; onMenu: () => void; onToggleTheme: () => void }) {
   const title = NAV_ITEMS.find(item => item.id === page)?.label ?? 'قیمت‌نگار'
   return <header className="topbar">
     <button className="icon-button menu-button" onClick={onMenu} aria-label="باز کردن منو"><Menu size={21}/></button>
     <div className="topbar-title"><span className="desktop-page-title">{title}</span><span className="mobile-brand-title">قیمت‌نگار</span></div>
     <div className="top-actions">
-      <Badge tone={online ? 'info' : 'default'}>{online ? 'داده محلی' : 'آفلاین'}</Badge>
       <button className="icon-button" onClick={onToggleTheme} title="تغییر حالت" aria-label="تغییر حالت روشن و تیره">{isDark ? <Sun size={18}/> : <Moon size={18}/>}</button>
     </div>
   </header>
