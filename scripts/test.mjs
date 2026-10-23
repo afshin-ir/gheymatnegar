@@ -112,10 +112,10 @@ assert.deepEqual(analytics.buildPointToPointChanges(pointToPointProducts, [], un
 // Personal basket weighting uses each product's share of that month's
 // recorded expenditure, without any manual product weight.
 const weightedPurchases = [
-  purchase('w1', 'wp1', '2026-01-05', 100),
-  purchase('w2', 'wp2', '2026-01-05', 100, undefined, 10),
-  purchase('w3', 'wp1', '2026-02-05', 200),
-  purchase('w4', 'wp2', '2026-02-05', 100, undefined, 10),
+  purchase('w1', 'wp1', '2026-03-25', 100),
+  purchase('w2', 'wp2', '2026-03-25', 100, undefined, 10),
+  purchase('w3', 'wp1', '2026-04-25', 200),
+  purchase('w4', 'wp2', '2026-04-25', 100, undefined, 10),
 ]
 const weightedIndex = analytics.buildCompositeIndex(weightedPurchases)
 assert.equal(weightedIndex.length, 2)
