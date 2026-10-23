@@ -193,10 +193,10 @@ input, select, textarea { color: var(--text); background: var(--surface); }
 .analysis-table-grid { align-items: start; }
 .analysis-table-wide { grid-column: 1 / -1; }
 .insight-table { width: 100%; min-width: 100%; border-collapse: separate; border-spacing: 0; }
-.insight-table thead th { padding: 11px 10px; color: var(--text); background: linear-gradient(180deg, color-mix(in srgb, var(--primary-soft) 72%, var(--surface)), var(--surface-2)); border-bottom: 1px solid var(--border-strong); font-size: 12px; font-weight: 800; white-space: nowrap; }
+.insight-table thead th { padding: 11px 10px; color: var(--text); background: linear-gradient(180deg, color-mix(in srgb, var(--primary-soft) 72%, var(--surface)), var(--surface-2)); border-bottom: 1px solid var(--border-strong); font-size: 13px; font-weight: 800; white-space: nowrap; }
 .insight-table thead th:first-child { border-start-start-radius: 10px; }
 .insight-table thead th:last-child { border-start-end-radius: 10px; }
-.insight-table tbody td { padding: 10px; font-size: 13px; vertical-align: middle; white-space: nowrap; }
+.insight-table tbody td { padding: 10px; font-size: 14px; vertical-align: middle; white-space: nowrap; }
 .insight-table tbody tr:nth-child(even) td { background: var(--surface-2); }
 .insight-table tbody tr:hover td { background: color-mix(in srgb, var(--primary-soft) 42%, var(--surface)); }
 .insight-table tbody tr:last-child td { border-bottom: 0; }
@@ -256,7 +256,7 @@ input, select, textarea { color: var(--text); background: var(--surface); }
 /* Tables */
 .table-wrap { overflow: auto; margin: 0 -5px -4px; overscroll-behavior: auto; }
 table { width: 100%; min-width: 700px; border-collapse: collapse; }
-th, td { padding: 12px 10px; text-align: right; border-bottom: 1px solid var(--border); font-size: 13px; }
+th, td { padding: 12px 10px; text-align: right; border-bottom: 1px solid var(--border); font-size: 14px; }
 th { color: var(--muted); font-size: 11.5px; font-weight: 700; }
 .comparison-table { border-collapse: separate; border-spacing: 0; }
 .comparison-table thead { background: linear-gradient(180deg, color-mix(in srgb, var(--primary-soft) 72%, var(--surface)), var(--surface-2)); }
@@ -688,11 +688,11 @@ hr { margin: 18px 0; border: 0; border-top: 1px solid var(--border); }
   .insight-table tbody { display: table-row-group; gap: 0; }
   .insight-table tbody tr { padding: 0; display: table-row; background: transparent; border: 0; border-radius: 0; }
   .insight-table tbody tr:hover { background: transparent; }
-  .insight-table tbody td { padding: 8px 6px; display: table-cell; text-align: right; border-bottom: 1px solid var(--border); font-size: 10.5px; white-space: normal; }
+  .insight-table tbody td { padding: 8px 6px; display: table-cell; text-align: right; border-bottom: 1px solid var(--border); font-size: 11.5px; white-space: normal; }
   .insight-table tbody td::before { display: none; content: none; }
   .insight-table tbody td:first-child { display: table-cell; }
-  .insight-table thead th { padding: 9px 6px; font-size: 10px; white-space: normal; }
-  .insight-table .table-sort { min-height: 30px; padding: 3px 4px; gap: 3px; font-size: 9px; }
+  .insight-table thead th { padding: 9px 6px; font-size: 11px; white-space: normal; }
+  .insight-table .table-sort { min-height: 30px; padding: 3px 4px; gap: 3px; font-size: 10px; }
   .price-history-table, .store-comparison-table { min-width: 100%; }
   .price-history-table th:last-child, .price-history-table td:last-child { display: none; }
   .store-comparison-table th:nth-child(4), .store-comparison-table td:nth-child(4) { display: none; }
