@@ -179,7 +179,7 @@ export default function App() {
   const stats = useMemo(() => getProductStats(products, filteredPurchases), [products, filteredPurchases])
   const composite = useMemo(() => buildCompositeIndex(filteredPurchases, startOfPersianMonthISO(rangeTo || todayISO())), [filteredPurchases, rangeTo])
   const latestComposite = composite.at(-1)
-  const observedIndexMonths = composite.filter(point => point.hasData)
+  const observedIndexMonths = composite.filter((point, index) => point.hasData && (index === 0 || point.matched > 0))
   const categories = useMemo(() => ['همه', ...Array.from(new Set(activeProducts.map(product => product.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'fa'))], [activeProducts])
   const normalizedSearch = useMemo(() => normalizePersianText(search), [search])
   const filteredStats = useMemo(() => {
@@ -205,7 +205,7 @@ export default function App() {
     .filter(stat => stat.changePct != null && stat.changePct > 0 && stat.count >= 2 && !stat.product.archived)
     .sort((a, b) => (b.changePct ?? 0) - (a.changePct ?? 0))
     .slice(0, 7)
-    .map(stat => ({ name: stat.product.name, change: stat.changePct })), [stats])
+    .map(stat => ({ id: stat.product.id, name: stat.product.name, change: stat.changePct, count: stat.count, lastDate: stat.lastDate })), [stats])
   const selectedProduct = products.find(product => product.id === selectedProductId)
   const selectedPurchasesAll = useMemo(() => filteredPurchases.filter(purchase => purchase.productId === selectedProductId), [filteredPurchases, selectedProductId])
   const selectedHistory = useMemo(() => sortPurchases(selectedPurchasesAll).map(purchase => ({ date: purchase.date, price: purchase.unitPrice, total: purchase.totalPaid })), [selectedPurchasesAll])
@@ -329,11 +329,13 @@ export default function App() {
   function applyQuickRange(days?: number) { setRangeTo(todayISO()); setRangeFrom(days ? lastNDaysISO(days) : '') }
   const renderRangeFilter = () => <section className="panel filter-panel range-panel">
     <div className="panel-head"><div><h2>بازهٔ بررسی</h2><p>این بازه در داشبورد، فهرست کالاها و تحلیل‌ها یکسان اعمال می‌شود؛ شاخص روی نخستین ماه داده‌دار بازه پایه‌گذاری می‌شود.</p></div></div>
-    <div className="filter-grid">
-      <div className="field"><span>از تاریخ</span><PersianDatePicker value={rangeFrom} onChange={setRangeFrom} max={todayISO()} allowClear ariaLabel="از تاریخ" placeholder="ابتدای بازه"/></div>
-      <div className="field"><span>تا تاریخ</span><PersianDatePicker value={rangeTo} onChange={setRangeTo} max={todayISO()} allowClear ariaLabel="تا تاریخ" placeholder="پایان بازه"/></div>
+    <div className="range-controls">
+      <div className="filter-grid">
+        <div className="field"><span>از تاریخ</span><PersianDatePicker value={rangeFrom} onChange={setRangeFrom} max={todayISO()} allowClear ariaLabel="از تاریخ" placeholder="ابتدای بازه"/></div>
+        <div className="field"><span>تا تاریخ</span><PersianDatePicker value={rangeTo} onChange={setRangeTo} max={todayISO()} allowClear ariaLabel="تا تاریخ" placeholder="پایان بازه"/></div>
+      </div>
+      <div className="quick-ranges" aria-label="بازه‌های سریع"><button className={rangeFrom === lastNDaysISO(30) && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange(30)}>۳۰ روز</button><button className={rangeFrom === lastNDaysISO(90) && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange(90)}>۳ ماه</button><button className={rangeFrom === lastNDaysISO(180) && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange(180)}>۶ ماه</button><button className={rangeFrom === lastNDaysISO(365) && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange(365)}>۱ سال</button><button className={!rangeFrom && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange()}>کل سابقه</button></div>
     </div>
-    <div className="quick-ranges" aria-label="بازه‌های سریع"><button className={rangeFrom === lastNDaysISO(30) && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange(30)}>۳۰ روز</button><button className={rangeFrom === lastNDaysISO(90) && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange(90)}>۳ ماه</button><button className={rangeFrom === lastNDaysISO(180) && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange(180)}>۶ ماه</button><button className={rangeFrom === lastNDaysISO(365) && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange(365)}>۱ سال</button><button className={!rangeFrom && rangeTo === todayISO() ? 'active' : ''} onClick={() => applyQuickRange()}>کل سابقه</button></div>
     {rangeInvalid ? <div className="filter-error"><Info size={15}/>تاریخ شروع باید پیش از تاریخ پایان باشد.</div> : null}
   </section>
 
@@ -430,7 +432,7 @@ export default function App() {
               <td>{point.changePct == null ? <span className="table-muted">{point.month === observedIndexMonths[0].month ? 'مبنای شاخص' : 'بدون مقایسه'}</span> : <span className={'delta ' + pctTone(point.changePct)}>{formatPct(point.changePct)}</span>}</td>
             </tr>)}</tbody>
           </table></div> : <EmptyState icon={<LineIcon size={24}/>} title="هنوز داده‌ای برای شاخص نداریم" body="با ثبت قیمت کالاها، مقادیر ماهانهٔ شاخص در این بخش نمایش داده می‌شوند."/>}
-          <div className="chart-note"><Info size={15}/><span>درصد هر ماه نسبت به آخرین قیمت قابل‌مقایسهٔ پیشین محاسبه می‌شود. ماه‌های بدون ثبت در جدول نمی‌آیند و تغییر صفر محسوب نمی‌شوند.</span></div>
+          <div className="chart-note"><Info size={15}/><span>ماه پایه با شاخص ۱۰۰ نمایش داده می‌شود؛ پس از آن فقط ماه‌هایی می‌آیند که دست‌کم یک کالای قابل‌مقایسه دارند. ماه‌های بدون مقایسه، تورم صفر محسوب نمی‌شوند.</span></div>
         </section>
 
         <section className="panel">
@@ -441,9 +443,9 @@ export default function App() {
               <TableSortHeader table="increase" column="name" label="کالا" sort={tableSorts.increase} onSort={toggleTableSort}/>
               <TableSortHeader table="increase" column="change" label="افزایش" sort={tableSorts.increase} onSort={toggleTableSort} initialDirection="desc"/>
             </tr></thead>
-            <tbody>{sortTableRows('increase', topChanges.map((item, rank) => ({ ...item, rank: rank + 1 })), { rank: item => item.rank, name: item => item.name, change: item => item.change }).map((item, index) => <tr key={item.name}>
+            <tbody>{sortTableRows('increase', topChanges.map((item, rank) => ({ ...item, rank: rank + 1 })), { rank: item => item.rank, name: item => item.name, change: item => item.change }).map((item, index) => <tr key={item.id} className="clickable" tabIndex={0} role="button" aria-label={'مشاهدهٔ سابقهٔ قیمت ' + item.name} onClick={() => { selectProduct(item.id); setPage('products') }} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectProduct(item.id); setPage('products') } }}>
               <td><span className="table-rank">{faNumber.format(index + 1)}</span></td>
-              <td>{item.name}</td>
+              <td>{item.name}<small>{faNumber.format(item.count)} ثبت · آخرین ثبت {item.lastDate ? formatDate(item.lastDate) : '—'}</small></td>
               <td><span className="delta up">{formatPct(item.change)}</span></td>
             </tr>)}</tbody>
           </table></div> : <EmptyState title="هنوز مقایسه‌ای نداریم" body="هر کالا به حداقل دو ثبت قیمت نیاز دارد."/>}
