@@ -98,7 +98,6 @@ export default function App() {
   const [importMode, setImportMode] = useState<'replace'|'merge'>('replace')
   const [storageText, setStorageText] = useState('در حال بررسی…')
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null)
-  const [systemDark, setSystemDark] = useState(() => matchMedia('(prefers-color-scheme: dark)').matches)
   const [confirmState, setConfirmState] = useState<{title:string; body:string; confirmText?:string; danger?:boolean} | null>(null)
   const confirmResolver = useRef<((value:boolean)=>void) | null>(null)
   const [renameTarget, setRenameTarget] = useState<Store | null>(null)
@@ -150,7 +149,7 @@ export default function App() {
     }
     apply(settings.theme)
     const mq = matchMedia('(prefers-color-scheme: dark)')
-    const listener = () => { setSystemDark(mq.matches); apply(settings.theme) }
+    const listener = () => apply(settings.theme)
     mq.addEventListener('change', listener)
     return () => mq.removeEventListener('change', listener)
   }, [settings.theme])
