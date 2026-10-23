@@ -78,6 +78,21 @@ assert.equal(extendedIndex.at(-1).hasData, false)
 assert.equal(extendedIndex.at(-1).changePct, null)
 assert.equal(extendedIndex.at(-1).index, extendedIndex.at(-2).index)
 
+const annualBasketIndex = analytics.buildCompositeIndex([
+  purchase('annual-prev', 'p1', '2025-08-25', 100),
+  purchase('annual-current', 'p1', '2026-08-25', 130),
+])
+const annualBasketPoint = annualBasketIndex.at(-1)
+assert.equal(annualBasketPoint.month, '2026-08-23')
+assert.equal(annualBasketPoint.yearOverYearMatched, 1)
+assert.ok(Math.abs(annualBasketPoint.yearOverYearChangePct - 30) < 1e-9)
+
+const noAnnualBasketMatch = analytics.buildCompositeIndex([
+  purchase('annual-current-only', 'p1', '2026-08-25', 130),
+]).at(-1)
+assert.equal(noAnnualBasketMatch.yearOverYearMatched, 0)
+assert.equal(noAnnualBasketMatch.yearOverYearChangePct, null)
+
 
 const pointToPointProducts = [product('y1', 'قبض گاز'), product('y2', 'قبض آب')]
 const pointToPoint = analytics.buildPointToPointChanges(pointToPointProducts, [
