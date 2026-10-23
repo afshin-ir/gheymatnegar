@@ -709,3 +709,121 @@ hr { margin: 18px 0; border: 0; border-top: 1px solid var(--border); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+
+/* Higher contrast headers, clear sort direction, and readable numeric columns */
+:root:not([data-theme='dark']) .insight-table thead th,
+:root:not([data-theme='dark']) .comparison-table th {
+  color: #fff;
+  background: linear-gradient(180deg, var(--primary), var(--primary-strong));
+  border-bottom-color: var(--primary-strong);
+}
+:root[data-theme='dark'] .insight-table thead th,
+:root[data-theme='dark'] .comparison-table th {
+  color: var(--text);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 25%, var(--surface)), color-mix(in srgb, var(--primary) 19%, var(--surface)));
+  border-bottom-color: color-mix(in srgb, var(--primary) 56%, var(--border-strong));
+}
+.insight-table .table-sort, .comparison-table .table-sort {
+  color: inherit;
+}
+:root:not([data-theme='dark']) .insight-table .table-sort span,
+:root:not([data-theme='dark']) .comparison-table .table-sort span {
+  color: rgba(255,255,255,.88);
+  background: rgba(255,255,255,.13);
+  border-color: rgba(255,255,255,.3);
+  font-size: 11px;
+  font-weight: 900;
+}
+:root:not([data-theme='dark']) .insight-table .table-sort:hover,
+:root:not([data-theme='dark']) .insight-table .table-sort.is-active,
+:root:not([data-theme='dark']) .comparison-table .table-sort:hover,
+:root:not([data-theme='dark']) .comparison-table .table-sort.is-active {
+  color: #fff;
+  background: rgba(255,255,255,.14);
+  border-color: rgba(255,255,255,.36);
+}
+:root:not([data-theme='dark']) .insight-table .table-sort.is-active span,
+:root:not([data-theme='dark']) .comparison-table .table-sort.is-active span {
+  color: var(--primary-strong);
+  background: #fff;
+  border-color: #fff;
+}
+:root[data-theme='dark'] .insight-table .table-sort span,
+:root[data-theme='dark'] .comparison-table .table-sort span {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 65%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 36%, var(--border));
+  font-size: 11px;
+  font-weight: 900;
+}
+:root[data-theme='dark'] .insight-table .table-sort:hover,
+:root[data-theme='dark'] .insight-table .table-sort.is-active,
+:root[data-theme='dark'] .comparison-table .table-sort:hover,
+:root[data-theme='dark'] .comparison-table .table-sort.is-active {
+  color: var(--text);
+  background: color-mix(in srgb, var(--primary) 22%, var(--surface));
+  border-color: color-mix(in srgb, var(--primary) 46%, var(--border));
+}
+:root[data-theme='dark'] .insight-table .table-sort.is-active span,
+:root[data-theme='dark'] .comparison-table .table-sort.is-active span {
+  color: #071318;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.insight-table-wrap, .comparison-table-wrap {
+  position: relative;
+  max-height: min(70vh, 680px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.insight-table-wrap .insight-table thead th,
+.comparison-table-wrap .comparison-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.table-more {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+.table-more-button {
+  min-height: 36px;
+  padding: 7px 14px;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, var(--border));
+  border-radius: 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+.table-more-button:hover {
+  background: color-mix(in srgb, var(--primary-soft) 72%, var(--surface));
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+}
+.table-more-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 55%, transparent);
+  outline-offset: 2px;
+}
+.dashboard-summary-table tbody td:nth-child(2),
+.dashboard-index-table tbody td:nth-child(n+2),
+.dashboard-increase-table tbody td:first-child,
+.dashboard-increase-table tbody td:last-child,
+.price-history-table tbody td:nth-child(2),
+.price-history-table tbody td:nth-child(3),
+.compact-insight-table tbody td:nth-child(n+2),
+.store-comparison-table tbody td:nth-child(n+2),
+.comparison-table tbody td:nth-child(n+2) {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 620px) {
+  .insight-table-wrap, .comparison-table-wrap {
+    max-height: min(66vh, 560px);
+  }
+}
