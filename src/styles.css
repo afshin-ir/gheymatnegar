@@ -560,6 +560,8 @@ hr { margin: 18px 0; border: 0; border-top: 1px solid var(--border); }
   .filter-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
+.insight-table .table-sort { white-space: normal; }
+
 @media (max-width: 620px) {
   /* On phones the bottom nav replaces the drawer entirely. */
   .sidebar { display: none !important; }
@@ -632,6 +634,7 @@ hr { margin: 18px 0; border: 0; border-top: 1px solid var(--border); }
   .insight-table tbody td::before { display: none; content: none; }
   .insight-table tbody td:first-child { display: table-cell; }
   .insight-table thead th { padding: 9px 6px; font-size: 10px; white-space: normal; }
+  .insight-table .table-sort { min-height: 30px; padding: 3px 4px; gap: 3px; font-size: 9px; }
   .price-history-table, .store-comparison-table { min-width: 100%; }
   .price-history-table th:last-child, .price-history-table td:last-child { display: none; }
   .store-comparison-table th:nth-child(4), .store-comparison-table td:nth-child(4) { display: none; }
