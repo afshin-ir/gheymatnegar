@@ -398,7 +398,7 @@ export default function App() {
           <div className="panel-head">
             <div>
               <h2>شاخص سبد و تغییر قیمت</h2>
-              <p>عدد شاخص و درصد تغییر در ماه‌های دارای ثبت؛ کارت‌ها را افقی مرور کنید.</p>
+              <p>عدد شاخص و درصد تغییر ماه‌های دارای ثبت، در چیدمانی چندردیفه.</p>
             </div>
             {latestComposite ? <Badge tone={!latestComposite.hasData ? 'default' : latestComposite.coveragePct >= 60 ? 'info' : 'default'}>{latestComposite.hasData ? faDecimal.format(latestComposite.coveragePct) + '٪ پوشش' : 'بدون ثبت این ماه'}</Badge> : <Badge tone="info">داده‌ای نداریم</Badge>}
           </div>
