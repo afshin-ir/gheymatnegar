@@ -280,10 +280,7 @@ export default function App() {
   }, new Map<number, AnnualBasketRow>()).values()]
   const sortedAnnualBasketRows = sortTableRows('annualInflation', annualBasketRows, {
     year: row => row.year,
-    change: row => row.changePct,
-    throughMonth: row => row.throughMonth,
-    coverage: row => row.coveragePct,
-    matched: row => row.matched
+    change: row => row.changePct
   })
   const productInflationRows: InflationTableRow[] = pointToPointRows.map(row => ({
     key: 'product:' + row.product.id,
@@ -480,18 +477,22 @@ export default function App() {
         <div className="dashboard-inflation-grid">
           <section className="dashboard-inflation-column">
             <div className="dashboard-inflation-subhead">
-              <div><h3>تورم سالانهٔ سبد خرید شخصی</h3><p>از ابتدای سال شمسی تا آخرین ماه دارای مقایسه</p></div>
+              <div><h3>تغییر سبد از آغاز سال</h3><p>از ابتدای سال شمسی تا آخرین ماه دارای مقایسه</p></div>
             </div>
             {sortedAnnualBasketRows.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table dashboard-annual-inflation-table">
               <thead><tr>
                 <TableSortHeader table="annualInflation" column="year" label="سال / دوره" sort={tableSorts.annualInflation} onSort={toggleTableSort} initialDirection="desc"/>
-                <TableSortHeader table="annualInflation" column="change" label="تورم سالانه" sort={tableSorts.annualInflation} onSort={toggleTableSort} initialDirection="desc"/>
-                <TableSortHeader table="annualInflation" column="throughMonth" label="پوشش در آخرین ماه" sort={tableSorts.annualInflation} onSort={toggleTableSort}/>
+                <TableSortHeader table="annualInflation" column="change" label="تغییر از آغاز سال" sort={tableSorts.annualInflation} onSort={toggleTableSort} initialDirection="desc"/>
               </tr></thead>
               <tbody>{sortedAnnualBasketRows.map(row => <tr key={row.year}>
                 <td><strong>{faNumber.format(row.year)}</strong><small>تا {formatMonth(row.throughMonth)}</small></td>
-                <td><span className={'delta dashboard-annual-rate ' + pctTone(row.changePct)}>{formatPct(row.changePct)}</span></td>
-                <td><strong>{faDecimal.format(row.coveragePct)}٪</strong><small>{faNumber.format(row.matched)} کالای مقایسه‌شده</small></td>
+                <td>
+                  <span className={'delta dashboard-annual-rate ' + pctTone(row.changePct)}>{formatPct(row.changePct)}</span>
+                  <small className={`dashboard-coverage-note ${row.coveragePct < 60 ? 'is-limited' : ''}`}>
+                    {row.coveragePct < 60 && <strong>برآورد محدود · </strong>}
+                    پوشش {faDecimal.format(row.coveragePct)}٪ · {faNumber.format(row.matched)} کالای مقایسه‌شده
+                  </small>
+                </td>
               </tr>)}</tbody>
             </table></div> : <EmptyState icon={<LineIcon size={24}/>} title="دادهٔ قابل‌مقایسه برای تورم سالانه نداریم" body="برای نمایش نرخ هر سال، به ثبت قیمت کالاها در دست‌کم دو ماه از همان سال نیاز است."/>}
             <div className="chart-note"><Info size={15}/><span>وزن کالاها براساس سهم مخارج ثبت‌شدهٔ هر ماه است. پوشش نشان می‌دهد چه سهمی از مخارج آخرین ماهِ قابل‌مقایسه در محاسبه آمده؛ سال جاری تا همان ماه محاسبه می‌شود.</span></div>
@@ -503,7 +504,7 @@ export default function App() {
                 <h3>تورم نقطه‌به‌نقطهٔ کالاها</h3>
                 <p>{pointToPointMonth ? `مقایسه با همان ماه سال قبل · ${formatMonth(pointToPointMonth)}` : 'مقایسهٔ قیمت هر کالا با همان ماه در سال قبل'}</p>
               </div>
-              <Badge tone={pointToPointRows.length ? 'info' : 'default'}>{faNumber.format(pointToPointRows.length)} کالا</Badge>
+              <Badge tone={pointToPointRows.length ? 'info' : 'default'}>{faNumber.format(pointToPointRows.length)} از {faNumber.format(activeProducts.length)} کالا</Badge>
             </div>
             {sortedProductInflationRows.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table dashboard-product-inflation-table">
               <thead><tr>
