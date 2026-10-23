@@ -190,6 +190,11 @@ input, select, textarea { color: var(--text); background: var(--surface); }
 .panel-head p, .settings-title p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.8; }
 .dashboard-grid, .analytics-grid, .finance-grid { margin-bottom: 16px; display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(340px, .85fr); gap: 16px; }
 .dashboard-grid.dashboard-grid-single { grid-template-columns: minmax(0, 1fr); }
+.dashboard-insight-pair { margin-bottom: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; }
+.dashboard-insight-pair > .panel { min-width: 0; }
+@media (max-width: 1180px) {
+  .dashboard-insight-pair { grid-template-columns: minmax(0, 1fr); }
+}
 .analytics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .analysis-table-grid { align-items: start; }
 .analysis-table-wide { grid-column: 1 / -1; }
