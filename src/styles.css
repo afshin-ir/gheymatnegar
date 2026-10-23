@@ -204,6 +204,16 @@ input, select, textarea { color: var(--text); background: var(--surface); }
 .dashboard-annual-inflation-table th:nth-child(1) { width: 25%; }
 .dashboard-annual-inflation-table th:nth-child(2) { width: 30%; }
 .dashboard-annual-inflation-table th:nth-child(3) { width: 45%; }
+.dashboard-annual-inflation-table tbody td { padding-block: 12px; }
+.dashboard-annual-inflation-table tbody td:first-child strong { font-size: 13px; }
+.dashboard-annual-inflation-table tbody td:first-child small,
+.dashboard-annual-inflation-table tbody td:last-child small { font-size: 10.5px; line-height: 1.5; }
+.dashboard-annual-rate { font-size: 16px; font-weight: 850; }
+.dashboard-inflation-column .empty-state { min-height: 116px; padding: 15px 10px; }
+.dashboard-inflation-column .empty-icon { width: 42px; height: 42px; margin-bottom: 7px; }
+.dashboard-inflation-column .empty-state h3 { font-size: 14px; }
+.dashboard-inflation-column .empty-state p { font-size: 11.5px; }
+.dashboard-inflation-column .chart-note { margin-top: 8px; font-size: 10.5px; }
 .dashboard-product-inflation-table th:nth-child(1) { width: 30%; }
 .dashboard-product-inflation-table th:nth-child(2) { width: 22%; }
 .dashboard-product-inflation-table th:nth-child(3) { width: 22%; }
