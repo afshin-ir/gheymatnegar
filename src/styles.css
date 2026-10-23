@@ -192,6 +192,7 @@ input, select, textarea { color: var(--text); background: var(--surface); }
 .dashboard-grid.dashboard-grid-single { grid-template-columns: minmax(0, 1fr); }
 .dashboard-insight-pair { margin-bottom: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; }
 .dashboard-insight-pair > .panel { min-width: 0; }
+.dashboard-insight-pair.is-single { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 1180px) {
   .dashboard-insight-pair { grid-template-columns: minmax(0, 1fr); }
 }
