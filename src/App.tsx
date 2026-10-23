@@ -247,7 +247,6 @@ export default function App() {
   }), [recentStats, tableSorts])
   const visibleComparisonStats = comparisonExpanded ? comparisonStats : comparisonStats.slice(0, 10)
   const money = (value: number, compact = settings.compactNumbers) => formatMoney(value, settings.currency, compact)
-  const isDark = settings.theme === 'dark' || (settings.theme === 'system' && systemDark)
   const lastBackupAt = settings.lastBackupAt ? new Date(settings.lastBackupAt) : null
   const backupAgeDays = lastBackupAt && !Number.isNaN(lastBackupAt.getTime()) ? Math.floor((Date.now() - lastBackupAt.getTime()) / 86_400_000) : null
   const backupDue = purchases.length >= 10 && (backupAgeDays == null || backupAgeDays >= BACKUP_REMINDER_DAYS)
