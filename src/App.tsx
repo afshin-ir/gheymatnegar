@@ -436,7 +436,7 @@ export default function App() {
         </section>
 
         <section className="panel">
-          <div className="panel-head"><div><h2>بیشترین افزایش</h2><p>از اولین تا آخرین ثبت هر کالا</p></div></div>
+          <div className="panel-head"><div><h2>بیشترین افزایش</h2><p>بیشترین تغییر قیمت در بازهٔ انتخاب‌شده</p></div></div>
           {topChanges.length ? <div className="table-wrap insight-table-wrap"><table className="insight-table dashboard-increase-table">
             <thead><tr>
               <TableSortHeader table="increase" column="rank" label="رتبه" sort={tableSorts.increase} onSort={toggleTableSort}/>
