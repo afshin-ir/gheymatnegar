@@ -13,9 +13,16 @@
     "build": "node scripts/clean.mjs && tsc -b && vite build && node scripts/build-sw.mjs",
     "preview": "vite preview",
     "check": "npm run test && npm run build",
-    "prepreview": "npm run build"
+    "prepreview": "npm run build",
+    "android:sync": "npm run build && cap sync android",
+    "android:open": "cap open android",
+    "android:debug": "npm run android:sync && cd android && ./gradlew assembleDebug",
+    "android:release": "npm run android:sync && cd android && ./gradlew bundleRelease"
   },
   "dependencies": {
+    "@capacitor/android": "7.6.10",
+    "@capacitor/app": "7.1.2",
+    "@capacitor/core": "7.6.10",
     "@fontsource-variable/vazirmatn": "5.2.5",
     "dexie": "4.4.5",
     "dexie-react-hooks": "4.4.0",
@@ -26,6 +33,7 @@
     "zod": "3.24.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "7.6.10",
     "@types/react": "18.3.18",
     "@types/react-dom": "18.3.5",
     "@vitejs/plugin-react": "6.1.0",
