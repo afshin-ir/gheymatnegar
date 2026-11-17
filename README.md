@@ -2,6 +2,8 @@
 
 # قیمت‌نگار
 
+نسخهٔ اندرویدی: [راهنمای نصب، ساخت APK و انتشار](ANDROID.md)
+
 ### ثبت قیمت کالاها، بررسی نوسان و سنجش تورم سبد خرید شخصی
 
 [باز کردن نسخهٔ آنلاین](https://afshin-ir.github.io/gheymatnegar/)　·　[مشاهدهٔ مخزن پروژه](https://github.com/afshin-ir/gheymatnegar)

@@ -1,6 +1,10 @@
+import { Capacitor } from '@capacitor/core'
+
 export type ServiceWorkerState = 'unsupported' | 'dev' | 'installing' | 'ready' | 'error'
 
 export async function registerAppServiceWorker(onState?: (state: ServiceWorkerState) => void) {
+  // Native assets are bundled in the APK and updated together with the app.
+  if (Capacitor.isNativePlatform()) return null
   if (!('serviceWorker' in navigator)) {
     onState?.('unsupported')
     return null

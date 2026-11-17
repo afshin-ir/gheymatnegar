@@ -12,7 +12,9 @@ import {
 import { db, DEFAULT_SETTINGS } from './lib/db'
 import type { BackupData, Product, Purchase, Store, ThemeMode } from './lib/types'
 import { buildCompositeIndex, buildPointToPointChanges, categoryInflation, filterPurchases, getProductStats, lastNDaysISO, periodProductChange, sortPurchases, storeComparison } from './lib/analytics'
-import { downloadText, encryptBackup, parseBackup, purchasesToCsv } from './lib/backup'
+import { encryptBackup, parseBackup, purchasesToCsv } from './lib/backup'
+import { exportText, isNativeApp } from './lib/native'
+import { App as NativeApp } from '@capacitor/app'
 import { formatDate, formatMoney, formatMonth, formatPct, faDecimal, faNumber, todayISO } from './lib/format'
 import { makeSearchKey, normalizePersianText, normalizeStoreName, sameNormalizedText } from './lib/text'
 import { planBackupMerge, resolveMergeCurrency } from './lib/merge'
@@ -139,6 +141,19 @@ export default function App() {
     confirmResolver.current = null
     setConfirmState(null)
   }
+
+  useEffect(() => {
+    if (!isNativeApp) return
+    const listener = NativeApp.addListener('backButton', () => {
+      if (confirmState) closeConfirm(false)
+      else if (renameTarget) setRenameTarget(null)
+      else if (purchaseModal.open) setPurchaseModal({ open: false })
+      else if (productModal.open) setProductModal({ open: false })
+      else if (page !== 'dashboard') setPage('dashboard')
+      else void NativeApp.minimizeApp()
+    })
+    return () => { void listener.then(handle => handle.remove()) }
+  }, [confirmState, renameTarget, purchaseModal.open, productModal.open, page])
 
   function selectProduct(id: string, revealOnMobile = false) {
     setSelectedProductId(id)
@@ -316,23 +331,29 @@ export default function App() {
   }
 
   async function plainExport() {
+    try {
     const exportedAt = new Date().toISOString()
-    downloadText(`gheymat-negar-backup-${todayISO()}.json`, JSON.stringify(backupObject(exportedAt), null, 2))
+    if (!await exportText(`gheymat-negar-backup-${todayISO()}.json`, JSON.stringify(backupObject(exportedAt), null, 2))) return
     await markBackup(exportedAt)
     pushToast('پشتیبان JSON ساخته شد.')
+    } catch { pushToast('ذخیرهٔ پشتیبان ناموفق بود؛ دوباره تلاش کنید.', 'error') }
   }
   async function encryptedExport() {
     if (backupPassword.length < 8) return pushToast('برای پشتیبان رمزدار، رمزی با حداقل ۸ کاراکتر وارد کنید.', 'error')
+    try {
     const exportedAt = new Date().toISOString()
     const encrypted = await encryptBackup(backupObject(exportedAt), backupPassword)
-    downloadText(`gheymat-negar-backup-${todayISO()}.gheymat`, encrypted, 'application/octet-stream')
+    if (!await exportText(`gheymat-negar-backup-${todayISO()}.gheymat`, encrypted, 'application/octet-stream')) return
     await markBackup(exportedAt)
     setBackupPassword('')
     pushToast('پشتیبان رمزگذاری‌شده ساخته شد.')
+    } catch { pushToast('ذخیرهٔ پشتیبان رمزدار ناموفق بود؛ دوباره تلاش کنید.', 'error') }
   }
-  function csvExport() {
-    downloadText(`gheymat-negar-price-history-${todayISO()}.csv`, purchasesToCsv(backupObject()), 'text/csv;charset=utf-8')
+  async function csvExport() {
+    try {
+    if (!await exportText(`gheymat-negar-price-history-${todayISO()}.csv`, purchasesToCsv(backupObject()), 'text/csv')) return
     pushToast('CSV سابقه قیمت ساخته شد.')
+    } catch { pushToast('ذخیرهٔ CSV ناموفق بود؛ دوباره تلاش کنید.', 'error') }
   }
 
   async function importFile(file: File) {
@@ -377,6 +398,7 @@ export default function App() {
   }
 
   async function persistStorage() {
+    if (isNativeApp) return pushToast('داده‌ها در فضای خصوصی برنامه نگهداری می‌شوند. حذف برنامه یا پاک‌کردن داده‌های آن، اطلاعات را حذف می‌کند.', 'info')
     if (!navigator.storage?.persist) return pushToast('مرورگر شما این قابلیت را پشتیبانی نمی‌کند.', 'error')
     const ok = await navigator.storage.persist(); pushToast(ok ? 'مرورگر اجازه نگهداری پایدار داده‌ها را داد.' : 'مرورگر اجازه ذخیره‌سازی پایدار را نداد.', ok?'ok':'info')
   }
@@ -681,11 +703,11 @@ export default function App() {
   </>
 
   const renderData = () => <>
-    <div className="page-heading"><div><span className="eyebrow">کنترل داده</span><h1>داده، حریم خصوصی و تنظیمات</h1><p>داده‌های عملیاتی داخل مرورگر نگه‌داری می‌شوند؛ اپ بک‌اند، حساب کاربری یا ابزار رهگیری ندارد.</p></div></div>
+    <div className="page-heading"><div><span className="eyebrow">کنترل داده</span><h1>داده، حریم خصوصی و تنظیمات</h1><p>{isNativeApp ? 'داده‌ها در فضای خصوصی برنامه روی همین دستگاه نگهداری می‌شوند؛ بدون حساب کاربری، سرور یا رهگیری.' : 'داده‌های عملیاتی داخل مرورگر نگه‌داری می‌شوند؛ اپ بک‌اند، حساب کاربری یا ابزار رهگیری ندارد.'}</p></div></div>
     <div className="settings-grid">
       <section className="panel">
-        <div className="settings-title"><div className="settings-icon"><ShieldCheck size={22}/></div><div><h2>حریم خصوصی و آفلاین</h2><p>بعد از اولین بارگذاری نسخه نهایی، فایل‌های اپ برای استفاده آفلاین در مرورگر نگه‌داری می‌شوند.</p></div></div>
-        <div className="settings-list"><div><span><CloudOff size={17}/>ارسال داده کاربر</span><strong>ندارد</strong></div><div><span><HardDrive size={17}/>محل داده</span><strong>IndexedDB مرورگر</strong></div><div><span><WifiOff size={17}/>حالت آفلاین</span><strong>{import.meta.env.DEV ? 'در حالت توسعه غیرفعال است' : navigator.serviceWorker?.controller ? 'فعال' : ('serviceWorker' in navigator ? 'در حال آماده‌سازی' : 'پشتیبانی مرورگر محدود است')}</strong></div><div><span><Database size={17}/>فضای فعلی</span><strong>{storageText}</strong></div><div><span><Info size={17}/>نسخه اپ</span><strong>{APP_VERSION}</strong></div><div><span><Download size={17}/>آخرین پشتیبان کامل</span><strong>{lastBackupAt && !Number.isNaN(lastBackupAt.getTime()) ? lastBackupAt.toLocaleDateString('fa-IR-u-ca-persian') : 'ثبت نشده'}</strong></div></div>
+        <div className="settings-title"><div className="settings-icon"><ShieldCheck size={22}/></div><div><h2>حریم خصوصی و آفلاین</h2><p>{isNativeApp ? 'همهٔ فایل‌های برنامه داخل بستهٔ نصب هستند و از اولین اجرا بدون اینترنت کار می‌کنند. پیش از حذف برنامه یا پاک‌کردن داده‌های آن، پشتیبان بگیرید.' : 'بعد از اولین بارگذاری نسخه نهایی، فایل‌های اپ برای استفاده آفلاین در مرورگر نگه‌داری می‌شوند.'}</p></div></div>
+        <div className="settings-list"><div><span><CloudOff size={17}/>ارسال داده کاربر</span><strong>ندارد</strong></div><div><span><HardDrive size={17}/>محل داده</span><strong>{isNativeApp ? 'فضای خصوصی برنامه (IndexedDB)' : 'IndexedDB مرورگر'}</strong></div><div><span><WifiOff size={17}/>حالت آفلاین</span><strong>{isNativeApp ? 'فعال از اولین اجرا' : import.meta.env.DEV ? 'در حالت توسعه غیرفعال است' : navigator.serviceWorker?.controller ? 'فعال' : ('serviceWorker' in navigator ? 'در حال آماده‌سازی' : 'پشتیبانی مرورگر محدود است')}</strong></div><div><span><Database size={17}/>فضای فعلی</span><strong>{storageText}</strong></div><div><span><Info size={17}/>نسخه اپ</span><strong>{APP_VERSION}</strong></div><div><span><Download size={17}/>آخرین پشتیبان کامل</span><strong>{lastBackupAt && !Number.isNaN(lastBackupAt.getTime()) ? lastBackupAt.toLocaleDateString('fa-IR-u-ca-persian') : 'ثبت نشده'}</strong></div></div>
         <div className="button-row settings-actions"><button className="button secondary" onClick={persistStorage}><HardDrive size={18}/>درخواست ذخیره‌سازی پایدار</button>{installEvent ? <button className="button primary" onClick={async () => { await installEvent.prompt(); setInstallEvent(null) }}><Download size={18}/>نصب اپ</button> : null}</div>
         <div className="notice"><Info size={17}/><span>IndexedDB رمزگذاری سطح اپ محسوب نمی‌شود. اگر دستگاه یا پروفایل مرورگر در اختیار فرد دیگری باشد، داده محلی ممکن است قابل دسترسی باشد. برای جابه‌جایی فایل، پشتیبان رمزدار مناسب‌تر است.</span></div>
       </section>
@@ -695,7 +717,7 @@ export default function App() {
         <label className="field"><span>رمز پشتیبان رمزدار</span><input type="password" value={backupPassword} onChange={event => setBackupPassword(event.target.value)} placeholder="حداقل ۸ کاراکتر" autoComplete="new-password"/></label>
         <div className="backup-buttons"><button className="button primary" onClick={encryptedExport}><LockKeyhole size={18}/>پشتیبان رمزدار</button><button className="button secondary" onClick={plainExport}><FileJson size={18}/>خروجی JSON</button><button className="button secondary" onClick={csvExport}><FileSpreadsheet size={18}/>خروجی CSV</button></div>
         <hr/>
-        <div className="import-row"><label className="field"><span>روش ورود</span><select value={importMode} onChange={event => setImportMode(event.target.value as 'replace' | 'merge')}><option value="replace">جایگزینی کامل داده فعلی</option><option value="merge">ادغام داده‌ها و حفظ تنظیمات فعلی</option></select></label><button className="button secondary" onClick={() => fileInputRef.current?.click()}><Upload size={18}/>ورود پشتیبان</button><input ref={fileInputRef} type="file" accept=".json,.gheymat,application/json" hidden onChange={event => event.target.files?.[0] && importFile(event.target.files[0])}/></div>
+        <div className="import-row"><label className="field"><span>روش ورود</span><select value={importMode} onChange={event => setImportMode(event.target.value as 'replace' | 'merge')}><option value="replace">جایگزینی کامل داده فعلی</option><option value="merge">ادغام داده‌ها و حفظ تنظیمات فعلی</option></select></label><button className="button secondary" onClick={() => fileInputRef.current?.click()}><Upload size={18}/>ورود پشتیبان</button><input ref={fileInputRef} type="file" accept={isNativeApp ? '*/*' : '.json,.gheymat,application/json'} hidden onChange={event => event.target.files?.[0] && importFile(event.target.files[0])}/></div>
       </section>
 
       <section className="panel">

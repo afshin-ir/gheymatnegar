@@ -6,3 +6,5 @@ dist
 
 .test-build
 *.tsbuildinfo
+*.jks
+*.keystore

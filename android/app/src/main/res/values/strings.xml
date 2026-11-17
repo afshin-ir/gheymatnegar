@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">قیمت‌نگار</string>
+    <string name="title_activity_main">قیمت‌نگار</string>
+    <string name="package_name">ir.afshin.gheymatnegar</string>
+    <string name="custom_url_scheme">ir.afshin.gheymatnegar</string>
+</resources>
